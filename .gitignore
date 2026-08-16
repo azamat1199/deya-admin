@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local env. Note: every VITE_-prefixed var is inlined into the client
+# bundle at build time and is therefore public — never put a secret here.
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

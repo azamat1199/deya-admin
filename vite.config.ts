@@ -6,13 +6,14 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3001,
-    // taxify.uz sends no Access-Control-Allow-Origin header, so the browser
-    // blocks direct calls in dev. Proxy same-origin /api/* requests to it
-    // server-side to avoid CORS. Production still needs the backend to
-    // allow the deployed admin origin, or to be served same-origin.
+    // Proxy /api/* to the backend server-side so dev requests stay
+    // same-origin and never depend on CORS headers. Whether deya.uz sends
+    // Access-Control-Allow-Origin is unverified, so this stays as a
+    // precaution. Production still needs the backend to allow the deployed
+    // admin origin, or to be served same-origin.
     proxy: {
       "/api": {
-        target: "https://taxify.uz",
+        target: "https://deya.uz",
         changeOrigin: true,
         secure: true,
       },
