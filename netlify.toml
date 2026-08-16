@@ -1,0 +1,18 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Vite inlines VITE_-prefixed vars at BUILD time, so this must be present in
+# the build container — .env is gitignored and never reaches CI. Keeping the
+# value here means the deploy does not depend on the Netlify dashboard.
+# Nothing secret can live here: every VITE_ var ends up in the public bundle.
+[build.environment]
+  VITE_API_URL = "https://deya.uz"
+
+# SPA fallback for client-side routing, so deep links like /catalog/products
+# resolve on refresh instead of 404ing. API calls are absolute to
+# VITE_API_URL and never reach Netlify, so this catch-all cannot swallow them.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

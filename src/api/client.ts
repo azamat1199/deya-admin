@@ -2,12 +2,31 @@ import axios from "axios";
 import type { FieldValues, Path, UseFormSetError } from "react-hook-form";
 import { clearToken, getToken } from "../utils/token";
 
-// In dev, go through the Vite proxy (same-origin /api) to avoid the API's
-// missing CORS headers — see the proxy comment in vite.config.ts. Production
-// builds call VITE_API_URL directly.
-export const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? "/" : import.meta.env.VITE_API_URL,
-});
+// Vite inlines VITE_-prefixed vars at BUILD time, not runtime — a value that
+// exists only in a local .env file is invisible to a CI build container.
+// Dev  → "" so requests stay same-origin and the Vite proxy handles them
+//         (see the proxy comment in vite.config.ts).
+// Prod → VITE_API_URL, which must be an absolute backend origin.
+// Trailing slashes are stripped so the base never doubles up with the leading
+// slash that every path constant already carries.
+const API_BASE_URL = import.meta.env.DEV
+  ? ""
+  : (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+
+// A missing base must never silently fall back to the page's own origin —
+// that points every request at the static host instead of the API, which
+// returns HTML and fails in confusing ways. vite.config.ts also fails the
+// build for this, so reaching here means a bundle was built some other way.
+if (!import.meta.env.DEV && !API_BASE_URL) {
+  throw new Error(
+    "VITE_API_URL is not set. This production build has no backend origin, " +
+      "so API requests would hit this site's own origin instead of the API. " +
+      "Set VITE_API_URL (e.g. https://deya.uz) in the deploy environment and " +
+      "rebuild — Vite inlines it at build time.",
+  );
+}
+
+export const apiClient = axios.create({ baseURL: API_BASE_URL });
 
 apiClient.interceptors.request.use((config) => {
   const token = getToken();
