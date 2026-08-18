@@ -263,7 +263,10 @@
       "updateSuccess": "Ценность успешно обновлена",
       "deleteSuccess": "Ценность удалена",
       "titleRequired": "Заголовок обязателен",
-      "textRequired": "Текст обязателен"
+      "textRequired": "Текст обязателен",
+      "search": "Поиск",
+      "searchPlaceholder": "Поиск по всем языкам",
+      "noSearchResults": "Ничего не найдено."
     },
     "companies": {
       "title": "Компании",

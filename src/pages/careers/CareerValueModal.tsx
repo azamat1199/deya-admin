@@ -4,23 +4,56 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { AlertCircle } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { careersApi } from "../../api/careers";
-import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
-import type { CareerValue } from "../../types/careers";
+import { getApiErrorMessage } from "../../api/client";
+import { LOCALES, DEFAULT_LOCALE, type Locale } from "../../types/i18n";
+import type { CareerValue, PatchCareerValueRequest } from "../../types/careers";
+
+// Every locale is optional except the app's default (uz), which must be
+// present so a record always renders something in the default admin view.
+// The backend may enforce more; those come back as 400s and are mapped onto
+// the matching input below.
+const localizedField = (requiredMessage: string) =>
+  z.object({
+    uz: z.string().min(1, requiredMessage),
+    ru: z.string(),
+    en: z.string(),
+  });
 
 const schema = z.object({
-  title: z.string().min(1, "titleRequired"),
-  text: z.string().min(1, "textRequired"),
+  title: localizedField("titleRequired"),
+  text: localizedField("textRequired"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { title: "", text: "" };
+const emptyValues: FormValues = {
+  title: { uz: "", ru: "", en: "" },
+  text: { uz: "", ru: "", en: "" },
+};
+
+/** Fills every locale key so each input is always bound to a string. */
+function toFormField(value: CareerValue[keyof CareerValue] | undefined) {
+  const source = (value ?? {}) as Partial<Record<Locale, string>>;
+  return {
+    uz: source.uz ?? "",
+    ru: source.ru ?? "",
+    en: source.en ?? "",
+  };
+}
+
+/** Drops blank locales so we never write empty strings over translations. */
+function toPayloadField(field: Record<Locale, string>) {
+  return Object.fromEntries(
+    LOCALES.map((l) => [l, field[l].trim()]).filter(([, v]) => v !== ""),
+  );
+}
 
 export function CareerValueModal({
   isOpen,
@@ -37,6 +70,7 @@ export function CareerValueModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [activeLocale, setActiveLocale] = useState<Locale>(DEFAULT_LOCALE);
   const isEditing = Boolean(value);
 
   const {
@@ -56,25 +90,32 @@ export function CareerValueModal({
   useEffect(() => {
     if (!isOpen) return;
     if (value) {
-      reset({ title: value.title, text: value.text });
+      reset({
+        title: toFormField(value.title),
+        text: toFormField(value.text),
+      });
     } else {
       reset(emptyValues);
     }
     setImageUrl(value?.image ?? null);
+    setActiveLocale(DEFAULT_LOCALE);
   }, [isOpen, value, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = {
-        title: values.title,
-        text: values.text,
+      const payload: PatchCareerValueRequest = {
+        title: toPayloadField(values.title),
+        text: toPayloadField(values.text),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
+      // PATCH on edit so untouched server-side fields are left alone.
       const { data } = value
-        ? await careersApi.updateCareerValue(value.id, payload)
-        : await careersApi.createCareerValue(payload);
+        ? await careersApi.patchCareerValue(value.id, payload)
+        : await careersApi.createCareerValue(
+            payload as Required<PatchCareerValueRequest>,
+          );
       toast.success(
         t(
           value
@@ -85,10 +126,52 @@ export function CareerValueModal({
       onSaved(data);
       onClose();
     } catch (error) {
-      applyApiFieldErrors<FormValues>(error, setError);
+      applyNestedFieldErrors(error);
       toast.error(getApiErrorMessage(error));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * DRF reports errors on translatable fields either flattened
+   * ("title.uz": [...]) or nested ({ title: { uz: [...] } }). The shared
+   * applyApiFieldErrors only handles the top level, so both forms are
+   * unwrapped here onto the matching per-locale input.
+   */
+  const applyNestedFieldErrors = (error: unknown) => {
+    const data = (
+      error as { response?: { data?: Record<string, unknown> } } | undefined
+    )?.response?.data;
+    if (!data || typeof data !== "object") return;
+
+    const firstMessage = (v: unknown): string =>
+      Array.isArray(v) ? String(v[0]) : String(v);
+
+    for (const [key, val] of Object.entries(data)) {
+      if (key === "detail") continue;
+
+      if (key.includes(".")) {
+        const [field, loc] = key.split(".");
+        if (isFormField(field) && isLocale(loc)) {
+          setError(`${field}.${loc}` as const, {
+            type: "server",
+            message: firstMessage(val),
+          });
+        }
+        continue;
+      }
+
+      if (isFormField(key) && val && typeof val === "object" && !Array.isArray(val)) {
+        for (const [loc, msg] of Object.entries(val as Record<string, unknown>)) {
+          if (isLocale(loc)) {
+            setError(`${key}.${loc}` as const, {
+              type: "server",
+              message: firstMessage(msg),
+            });
+          }
+        }
+      }
     }
   };
 
@@ -96,6 +179,10 @@ export function CareerValueModal({
     message
       ? t(`careers.careerValues.${message}`, { defaultValue: message })
       : undefined;
+
+  /** True when a locale tab holds an error, so it can be flagged. */
+  const localeHasError = (loc: Locale) =>
+    Boolean(errors.title?.[loc] || errors.text?.[loc]);
 
   return (
     <Modal
@@ -108,17 +195,56 @@ export function CareerValueModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("careers.careerValues.valueTitle")}
-          error={fieldError(errors.title?.message)}
-          {...register("title")}
-        />
+        <div
+          role="tablist"
+          className="flex gap-1 border-b border-slate-200 dark:border-slate-800"
+        >
+          {LOCALES.map((loc) => (
+            <button
+              key={loc}
+              type="button"
+              role="tab"
+              aria-selected={activeLocale === loc}
+              onClick={() => setActiveLocale(loc)}
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                activeLocale === loc
+                  ? "border-slate-900 text-slate-900 dark:border-white dark:text-white"
+                  : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              {loc.toUpperCase()}
+              {loc === DEFAULT_LOCALE && (
+                <span className="text-red-500" aria-hidden="true">
+                  *
+                </span>
+              )}
+              {localeHasError(loc) && (
+                <AlertCircle className="h-3.5 w-3.5 text-red-500" />
+              )}
+            </button>
+          ))}
+        </div>
 
-        <Textarea
-          label={t("careers.careerValues.text")}
-          error={fieldError(errors.text?.message)}
-          {...register("text")}
-        />
+        {/* All locales stay mounted so react-hook-form keeps their values and
+            validation errors; only the active one is visible. */}
+        {LOCALES.map((loc) => (
+          <div
+            key={loc}
+            hidden={loc !== activeLocale}
+            className="flex flex-col gap-4"
+          >
+            <Input
+              label={`${t("careers.careerValues.valueTitle")} (${loc.toUpperCase()})`}
+              error={fieldError(errors.title?.[loc]?.message)}
+              {...register(`title.${loc}` as const)}
+            />
+            <Textarea
+              label={`${t("careers.careerValues.text")} (${loc.toUpperCase()})`}
+              error={fieldError(errors.text?.[loc]?.message)}
+              {...register(`text.${loc}` as const)}
+            />
+          </div>
+        ))}
 
         <FileUpload
           label={`${t("careers.careerValues.image")} (${t(
@@ -138,10 +264,22 @@ export function CareerValueModal({
             isLoading={isSubmitting}
             disabled={isUploadingImage}
           >
-            {t(isEditing ? "careers.careerValues.save" : "careers.careerValues.create")}
+            {t(
+              isEditing
+                ? "careers.careerValues.save"
+                : "careers.careerValues.create",
+            )}
           </Button>
         </div>
       </form>
     </Modal>
   );
+}
+
+function isLocale(v: string): v is Locale {
+  return (LOCALES as readonly string[]).includes(v);
+}
+
+function isFormField(v: string): v is "title" | "text" {
+  return v === "title" || v === "text";
 }

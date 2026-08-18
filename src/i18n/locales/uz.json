@@ -263,7 +263,10 @@
       "updateSuccess": "Qadriyat muvaffaqiyatli yangilandi",
       "deleteSuccess": "Qadriyat o'chirildi",
       "titleRequired": "Sarlavha majburiy",
-      "textRequired": "Matn majburiy"
+      "textRequired": "Matn majburiy",
+      "search": "Qidirish",
+      "searchPlaceholder": "Barcha tillar bo'yicha qidirish",
+      "noSearchResults": "Hech narsa topilmadi."
     },
     "companies": {
       "title": "Kompaniyalar",

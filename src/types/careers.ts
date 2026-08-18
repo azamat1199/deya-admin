@@ -1,15 +1,23 @@
+import type { Translated } from "./i18n";
+
+/**
+ * `title` and `text` are multilingual: the API returns and expects
+ * { uz, ru, en } objects, not strings. Never render them directly — pass
+ * them through tr() from types/i18n.ts first. `image` is a plain URL string
+ * and is not translated.
+ */
 export interface CareerValue {
   id: number;
-  title: string;
-  text: string;
+  title: Translated;
+  text: Translated;
   image: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CareerValuePayload {
-  title: string;
-  text: string;
+  title: Translated;
+  text: Translated;
   image?: string;
 }
 

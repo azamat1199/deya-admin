@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Paginated } from "../types/i18n";
 
 interface CrudListState<T> {
   items: T[];
@@ -27,7 +28,10 @@ function normalizeList<T>(data: unknown): T[] {
  * function) — passing a new closure each render would refetch in a loop.
  */
 export function useCrudList<T extends { id: number | string }>(
-  fetchList: () => Promise<{ data: T[] }>,
+  // Accepts either shape so paginated endpoints are typed honestly rather
+  // than only rescued at runtime by normalizeList. Plain `T[]` still
+  // satisfies this, so existing callers are unaffected.
+  fetchList: () => Promise<{ data: T[] | Paginated<T> }>,
 ) {
   const [state, setState] = useState<CrudListState<T>>({
     items: [],

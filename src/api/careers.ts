@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import type { Paginated } from "../types/i18n";
 import type {
   CareerValue,
   CareerValuePayload,
@@ -11,8 +12,19 @@ import type {
 const CAREER_VALUES_URL = "/api/v1/admin/careers/career-values/";
 const COMPANIES_URL = "/api/v1/admin/careers/companies/";
 
+export interface CareerValueListParams {
+  page?: number;
+  search?: string;
+  ordering?: string;
+}
+
 export const careersApi = {
-  getCareerValues: () => apiClient.get<CareerValue[]>(CAREER_VALUES_URL),
+  // Typed as either shape: this list is documented as paginated, but sibling
+  // endpoints on this API return bare arrays. useCrudList normalizes both.
+  getCareerValues: (params?: CareerValueListParams) =>
+    apiClient.get<CareerValue[] | Paginated<CareerValue>>(CAREER_VALUES_URL, {
+      params,
+    }),
 
   getCareerValue: (id: number) =>
     apiClient.get<CareerValue>(`${CAREER_VALUES_URL}${id}/`),
