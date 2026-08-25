@@ -9,16 +9,13 @@ import { StatModal } from "./StatModal";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
-import { toLocalizedText } from "../../utils/localized";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { Stat } from "../../types/about";
 
-function localizedTitle(stat: Stat, lang: string): string {
-  const title = toLocalizedText(stat.title);
-  return (lang === "ru" ? title.ru : title.uz) || title.uz || title.ru;
-}
-
 export default function Stats() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, replace, remove } = useCrudList(
     aboutApi.getStats,
   );
@@ -60,7 +57,7 @@ export default function Stats() {
       header: t("about.stats.statTitle"),
       render: (s) => (
         <span className="text-slate-900 dark:text-white">
-          {localizedTitle(s, i18n.language)}
+          {resolve(s.title, locale)}
         </span>
       ),
     },
@@ -133,7 +130,7 @@ export default function Stats() {
         isLoading={isDeleting}
         title={t("about.stats.confirmDeleteTitle")}
         message={t("about.stats.confirmDeleteMessage", {
-          name: deletingStat ? localizedTitle(deletingStat, i18n.language) : "",
+          name: deletingStat ? resolve(deletingStat.title, locale) : "",
         })}
         confirmLabel={t("about.stats.delete")}
         cancelLabel={t("about.stats.cancel")}

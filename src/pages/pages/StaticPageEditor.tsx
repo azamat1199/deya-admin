@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -9,14 +9,29 @@ import { Card } from "../../components/ui/Card";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { RichTextEditor } from "../../components/ui/RichTextEditor";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { pagesApi } from "../../api/pages";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import {
+  buildTranslatable,
+  toTranslatable,
+  LOCALES,
+  type Translatable,
+} from "../../api/i18n";
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
 import { slugify } from "../../utils/slugify";
 import type { StaticPagePayload } from "../../types/pages";
 
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+
 const schema = z.object({
-  title: z.string().min(1, "titleRequired"),
+  title: translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "titleRequired",
+  }),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
 });
 
@@ -31,7 +46,11 @@ export default function StaticPageEditor() {
   const [isLoading, setIsLoading] = useState(isEditing);
   const [hasError, setHasError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [body, setBody] = useState("");
+  // Rich text is held per locale, so switching tabs never loses the
+  // other languages and saving never blanks them.
+  const [body, setBody] = useState<Translatable>({ ru: "", uz: "", en: "" });
+  const [loadedBody, setLoadedBody] = useState<Translatable | null>(null);
+  const [loadedTitle, setLoadedTitle] = useState<Translatable | null>(null);
   const [bodyDirty, setBodyDirty] = useState(false);
   const [bodyError, setBodyError] = useState<string | null>(null);
 
@@ -45,11 +64,16 @@ export default function StaticPageEditor() {
     reset,
     setValue,
     setError,
+    control,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", slug: "" },
+    defaultValues: { title: { ru: "", uz: "", en: "" }, slug: "" },
   });
+
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
 
   useUnsavedChangesGuard(isDirty || bodyDirty);
 
@@ -59,8 +83,10 @@ export default function StaticPageEditor() {
     setHasError(false);
     try {
       const { data } = await pagesApi.getStaticPage(Number(id));
-      reset({ title: data.title, slug: data.slug });
-      setBody(data.body);
+      reset({ title: toTranslatable(data.title), slug: data.slug });
+      setBody(toTranslatable(data.body));
+      setLoadedBody(toTranslatable(data.body));
+      setLoadedTitle(toTranslatable(data.title));
       setBodyDirty(false);
     } catch {
       setHasError(true);
@@ -69,13 +95,15 @@ export default function StaticPageEditor() {
     }
   }, [id, reset]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- fetches the page
-     being edited on mount; a documented, standard effect use case
+   
+  /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
+     the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (isEditing) fetchPage();
   }, [isEditing, fetchPage]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const handleCancel = () => {
     if ((isDirty || bodyDirty) && !window.confirm(t("pages.staticPages.unsavedChangesConfirm"))) {
@@ -85,7 +113,9 @@ export default function StaticPageEditor() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    const hasContent = body.replace(/<[^>]*>/g, "").trim().length > 0;
+    const hasContent = LOCALES.some(
+      (l) => body[l].replace(/<[^>]*>/g, "").trim().length > 0,
+    );
     if (!hasContent) {
       setBodyError(t("pages.staticPages.bodyRequired"));
       return;
@@ -94,9 +124,9 @@ export default function StaticPageEditor() {
     setIsSubmitting(true);
     try {
       const payload: StaticPagePayload = {
-        title: values.title,
+        title: buildTranslatable(values.title, loadedTitle),
         slug: values.slug,
-        body,
+        body: buildTranslatable(body, loadedBody),
       };
       if (id) {
         await pagesApi.updateStaticPage(Number(id), payload);
@@ -157,19 +187,29 @@ export default function StaticPageEditor() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <Card className="flex flex-col gap-4 p-6">
-          <Input
-            label={t("pages.staticPages.pageTitle")}
-            error={fieldError(errors.title?.message)}
-            {...register("title", {
-              onChange: (e) => {
-                if (!slugEdited) {
-                  setValue("slug", slugify(e.target.value), {
-                    shouldValidate: true,
-                  });
-                }
-              },
-            })}
-          />
+          {/* Title and body sit in separate Cards, so each keeps its own
+              tab bar rather than moving one across the existing layout. */}
+          <TranslatableFields
+            fields={["title"]}
+            values={watchedValues}
+            errors={errors}
+          >
+            {(locale) => (
+              <Input
+                label={`${t("pages.staticPages.pageTitle")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.title?.[locale]?.message)}
+                {...register(`title.${locale}` as const, {
+                  onChange: (e) => {
+                    if (!slugEdited && locale === "ru") {
+                      setValue("slug", slugify(e.target.value), {
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
+              />
+            )}
+          </TranslatableFields>
 
           <Input
             label={t("pages.staticPages.slug")}
@@ -181,16 +221,24 @@ export default function StaticPageEditor() {
         </Card>
 
         <Card className="p-6">
-          <RichTextEditor
-            label={t("pages.staticPages.body")}
-            value={body}
-            onChange={(html) => {
-              setBody(html);
-              setBodyDirty(true);
-              if (bodyError) setBodyError(null);
-            }}
-            error={bodyError ?? undefined}
-          />
+          <TranslatableFields
+            fields={["body"]}
+            values={{ body }}
+            errors={errors}
+          >
+            {(locale) => (
+              <RichTextEditor
+                label={`${t("pages.staticPages.body")} (${locale.toUpperCase()})`}
+                value={body[locale]}
+                onChange={(html) => {
+                  setBody((prev) => ({ ...prev, [locale]: html }));
+                  setBodyDirty(true);
+                  if (bodyError) setBodyError(null);
+                }}
+                error={bodyError ?? undefined}
+              />
+            )}
+          </TranslatableFields>
         </Card>
 
         <div className="flex justify-end gap-2">

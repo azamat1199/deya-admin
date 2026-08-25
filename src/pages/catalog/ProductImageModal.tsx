@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -11,12 +11,18 @@ import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { catalogApi } from "../../api/catalog";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, resolve, toTranslatable } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { Product, ProductImage } from "../../types/catalog";
+
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() });
 
 const schema = z.object({
   product: z.string().regex(/^\d+$/, "productRequired"),
-  alt: z.string(),
+  alt: translatableField,
   // Soft cap — sort_order's real max is unconfirmed beyond Swagger's
   // generic 32767 example (looks like a SmallIntegerField default).
   sort_order: z.string().regex(/^\d{1,5}$/, "sortOrderInvalid"),
@@ -25,7 +31,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 function buildEmptyValues(sortOrder: number): FormValues {
-  return { product: "", alt: "", sort_order: String(sortOrder) };
+  return {
+    product: "",
+    alt: { ru: "", uz: "", en: "" },
+    sort_order: String(sortOrder),
+  };
 }
 
 export function ProductImageModal({
@@ -46,6 +56,7 @@ export function ProductImageModal({
   isLoadingProducts: boolean;
 }) {
   const { t } = useTranslation();
+  const locale = useLocale();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -54,8 +65,8 @@ export function ProductImageModal({
   const isEditing = Boolean(productImage);
 
   const productOptions = useMemo(
-    () => products.map((p) => ({ value: String(p.id), label: p.name })),
-    [products],
+    () => products.map((p) => ({ value: String(p.id), label: resolve(p.name, locale) })),
+    [products, locale],
   );
 
   const {
@@ -70,6 +81,11 @@ export function ProductImageModal({
     defaultValues: buildEmptyValues(nextSortOrder),
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -78,7 +94,7 @@ export function ProductImageModal({
     if (productImage) {
       reset({
         product: String(productImage.product),
-        alt: productImage.alt,
+        alt: toTranslatable(productImage.alt),
         sort_order: String(productImage.sort_order),
       });
     } else {
@@ -89,6 +105,7 @@ export function ProductImageModal({
     setImageError(null);
   }, [isOpen, productImage, nextSortOrder, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     if (!imageUrl) {
@@ -100,7 +117,7 @@ export function ProductImageModal({
       const payload = {
         product: Number(values.product),
         image: imageUrl,
-        alt: values.alt,
+        alt: buildTranslatable(values.alt, productImage?.alt),
         is_main: isMain,
         sort_order: Number(values.sort_order),
       };
@@ -173,11 +190,15 @@ export function ProductImageModal({
           error={imageError}
         />
 
-        <Input
-          label={t("catalog.productImages.alt")}
-          error={fieldError(errors.alt?.message)}
-          {...register("alt")}
-        />
+        <TranslatableFields fields={["alt"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("catalog.productImages.alt")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.alt?.[locale]?.message)}
+              {...register(`alt.${locale}` as const)}
+            />
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("catalog.productImages.sortOrder")}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -11,21 +11,32 @@ import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
-import { toLocalizedText } from "../../utils/localized";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { TimelineItem } from "../../types/about";
+
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+const requiredTranslatable = (message: string) =>
+  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message,
+  });
 
 const schema = z.object({
   year: z.string().regex(/^\d{4}$/, "yearInvalid"),
-  title: z.string().min(1, "titleRequired"),
-  description: z.string().min(1, "descriptionRequired"),
+  title: requiredTranslatable("titleRequired"),
+  description: requiredTranslatable("descriptionRequired"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = {
   year: String(new Date().getFullYear()),
-  title: "",
-  description: "",
+  title: { ru: "", uz: "", en: "" },
+  description: { ru: "", uz: "", en: "" },
 };
 
 export function TimelineModal({
@@ -39,7 +50,7 @@ export function TimelineModal({
   item: TimelineItem | null;
   onSaved: (item: TimelineItem) => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -50,43 +61,46 @@ export function TimelineModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (item) {
-      const title = toLocalizedText(item.title);
-      const description = toLocalizedText(item.description);
-      const lang = i18n.language === "ru" ? "ru" : "uz";
       reset({
         year: String(item.year),
-        title: title[lang] || title.uz || title.ru,
-        description: description[lang] || description.uz || description.ru,
+        // full objects — the previous code resolved to one string here,
+        // which wiped the other languages on the next save.
+        title: toTranslatable(item.title),
+        description: toTranslatable(item.description),
       });
     } else {
       reset(emptyValues);
     }
     setImageUrl(item?.image ?? null);
-  }, [isOpen, item, reset, i18n.language]);
+  }, [isOpen, item, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Swagger's confirmed request body takes plain strings, so editing
-      // an item whose title/description came back as {uz, ru} collapses it
-      // to a single language on save — single-language form is one field.
       const payload = {
         year: Number(values.year),
-        title: values.title,
-        description: values.description,
+        title: buildTranslatable(values.title, item?.title),
+        description: buildTranslatable(values.description, item?.description),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
       const { data } = item
@@ -129,16 +143,26 @@ export function TimelineModal({
           error={fieldError(errors.year?.message)}
           {...register("year")}
         />
-        <Input
-          label={t("about.timeline.itemTitle")}
-          error={fieldError(errors.title?.message)}
-          {...register("title")}
-        />
-        <Textarea
-          label={t("about.timeline.description")}
-          error={fieldError(errors.description?.message)}
-          {...register("description")}
-        />
+        <TranslatableFields
+          fields={["title", "description"]}
+          values={watchedValues}
+          errors={errors}
+        >
+          {(locale) => (
+            <>
+              <Input
+                label={`${t("about.timeline.itemTitle")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.title?.[locale]?.message)}
+                {...register(`title.${locale}` as const)}
+              />
+              <Textarea
+                label={`${t("about.timeline.description")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.description?.[locale]?.message)}
+                {...register(`description.${locale}` as const)}
+              />
+            </>
+          )}
+        </TranslatableFields>
 
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

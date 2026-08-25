@@ -26,6 +26,11 @@ if (!import.meta.env.DEV && !API_BASE_URL) {
   );
 }
 
+// Declared here rather than imported from ../i18n so the api layer does not
+// pull in the i18next init side-effect. Must match src/i18n/index.ts.
+const LANGUAGE_KEY = "deya_admin_language";
+const DEFAULT_LANGUAGE = "uz";
+
 export const apiClient = axios.create({ baseURL: API_BASE_URL });
 
 apiClient.interceptors.request.use((config) => {
@@ -33,6 +38,14 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // The API honours Accept-Language (?lang= is ignored), so list endpoints
+  // that resolve server-side come back in the admin's chosen language. Edit
+  // forms still load the full { uz, ru, en } object, so this only affects
+  // which language a resolved read shows — never what a save writes.
+  // Read from storage rather than importing i18n to keep this module free of
+  // UI dependencies; falls back to the app default.
+  const language = localStorage.getItem(LANGUAGE_KEY);
+  config.headers["Accept-Language"] = language || DEFAULT_LANGUAGE;
   return config;
 });
 

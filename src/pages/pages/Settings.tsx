@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -10,22 +10,30 @@ import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { pagesApi } from "../../api/pages";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
-import type { SiteSettingsPayload } from "../../types/pages";
+import type { SiteSettings, SiteSettingsPayload } from "../../types/pages";
 
 const PHONE_REGEX = /^\+?[0-9\s-]{7,20}$/;
+
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
 
 const schema = z.object({
   phone: z.string().regex(PHONE_REGEX, "phoneInvalid"),
   hotline: z.string().regex(PHONE_REGEX, "hotlineInvalid"),
   email: z.string().email("emailInvalid"),
-  address: z.string(),
-  work_hours: z.string(),
+  address: translatableField,
+  work_hours: translatableField,
   yandex_map_url: z.string().url("urlInvalid").or(z.literal("")),
   instagram_url: z.string().url("urlInvalid").or(z.literal("")),
   telegram_url: z.string().url("urlInvalid").or(z.literal("")),
-  cookie_notice_text: z.string(),
+  cookie_notice_text: translatableField,
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -34,12 +42,12 @@ const emptyValues: FormValues = {
   phone: "",
   hotline: "",
   email: "",
-  address: "",
-  work_hours: "",
+  address: { ru: "", uz: "", en: "" },
+  work_hours: { ru: "", uz: "", en: "" },
   yandex_map_url: "",
   instagram_url: "",
   telegram_url: "",
-  cookie_notice_text: "",
+  cookie_notice_text: { ru: "", uz: "", en: "" },
 };
 
 function FieldSkeleton() {
@@ -59,17 +67,26 @@ export default function Settings() {
   const [catalogFileUrl, setCatalogFileUrl] = useState<string | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
+  // settings/ is PUT-only (no PATCH), so every save rewrites the whole
+  // object. The loaded record is kept so untouched languages are sent back
+  // as-is rather than blanked.
+  const [loaded, setLoaded] = useState<SiteSettings | null>(null);
 
   const {
     register,
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
+
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
@@ -80,14 +97,15 @@ export default function Settings() {
         phone: data.phone,
         hotline: data.hotline,
         email: data.email,
-        address: data.address,
-        work_hours: data.work_hours,
+        address: toTranslatable(data.address),
+        work_hours: toTranslatable(data.work_hours),
         yandex_map_url: data.yandex_map_url,
         instagram_url: data.instagram_url,
         telegram_url: data.telegram_url,
-        cookie_notice_text: data.cookie_notice_text,
+        cookie_notice_text: toTranslatable(data.cookie_notice_text),
       });
       setCatalogFileUrl(data.catalog_file || null);
+      setLoaded(data);
       setUpdatedAt(data.updated_at);
     } catch {
       setHasError(true);
@@ -96,13 +114,15 @@ export default function Settings() {
     }
   }, [reset]);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- fetches the
-     singleton settings object on mount; a documented, standard effect use
-     case (https://react.dev/learn/you-might-not-need-an-effect) */
+   
+  /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
+     the opened item; a documented, standard effect use case
+     (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   useUnsavedChangesGuard(isDirty);
 
@@ -111,6 +131,12 @@ export default function Settings() {
     try {
       const payload: SiteSettingsPayload = {
         ...values,
+        address: buildTranslatable(values.address, loaded?.address),
+        work_hours: buildTranslatable(values.work_hours, loaded?.work_hours),
+        cookie_notice_text: buildTranslatable(
+          values.cookie_notice_text,
+          loaded?.cookie_notice_text,
+        ),
         catalog_file: catalogFileUrl ?? "",
       };
       const { data } = await pagesApi.updateSettings(payload);
@@ -196,18 +222,28 @@ export default function Settings() {
               error={fieldError(errors.email?.message)}
               {...register("email")}
             />
-            <Input
-              label={t("pages.settings.workHours")}
-              error={fieldError(errors.work_hours?.message)}
-              {...register("work_hours")}
-            />
           </div>
 
-          <Input
-            label={t("pages.settings.address")}
-            error={fieldError(errors.address?.message)}
-            {...register("address")}
-          />
+          <TranslatableFields
+            fields={["address", "work_hours"]}
+            values={watchedValues}
+            errors={errors}
+          >
+            {(locale) => (
+              <>
+                <Input
+                  label={`${t("pages.settings.workHours")} (${locale.toUpperCase()})`}
+                  error={fieldError(errors.work_hours?.[locale]?.message)}
+                  {...register(`work_hours.${locale}` as const)}
+                />
+                <Input
+                  label={`${t("pages.settings.address")} (${locale.toUpperCase()})`}
+                  error={fieldError(errors.address?.[locale]?.message)}
+                  {...register(`address.${locale}` as const)}
+                />
+              </>
+            )}
+          </TranslatableFields>
         </Card>
 
         <Card className="flex flex-col gap-4 p-6">
@@ -254,11 +290,19 @@ export default function Settings() {
             {t("pages.settings.sectionLegal")}
           </h3>
 
-          <Textarea
-            label={t("pages.settings.cookieNoticeText")}
-            error={fieldError(errors.cookie_notice_text?.message)}
-            {...register("cookie_notice_text")}
-          />
+          <TranslatableFields
+            fields={["cookie_notice_text"]}
+            values={watchedValues}
+            errors={errors}
+          >
+            {(locale) => (
+              <Textarea
+                label={`${t("pages.settings.cookieNoticeText")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.cookie_notice_text?.[locale]?.message)}
+                {...register(`cookie_notice_text.${locale}` as const)}
+              />
+            )}
+          </TranslatableFields>
         </Card>
 
         <div className="flex items-center justify-between">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -8,18 +8,26 @@ import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { catalogApi } from "../../api/catalog";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { slugify } from "../../utils/slugify";
 import type { ProductFamily } from "../../types/catalog";
 
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() })
+  .refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "nameRequired",
+  });
+
 const schema = z.object({
-  name: z.string().min(1, "nameRequired"),
+  name: translatableField,
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { name: "", slug: "" };
+const emptyValues: FormValues = { name: { ru: "", uz: "", en: "" }, slug: "" };
 
 export function ProductFamilyModal({
   isOpen,
@@ -46,19 +54,25 @@ export function ProductFamilyModal({
     reset,
     setValue,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (productFamily) {
-      reset({ name: productFamily.name, slug: productFamily.slug });
+      reset({ name: toTranslatable(productFamily.name), slug: productFamily.slug });
       // Editing an existing product family: its slug is already
       // established, so don't let further name edits silently rewrite it.
       setSlugEdited(true);
@@ -68,11 +82,12 @@ export function ProductFamilyModal({
     }
   }, [isOpen, productFamily, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = { name: values.name, slug: values.slug };
+      const payload = { name: buildTranslatable(values.name, productFamily?.name), slug: values.slug };
       const { data } = productFamily
         ? await catalogApi.updateProductFamily(productFamily.id, payload)
         : await catalogApi.createProductFamily(payload);
@@ -109,19 +124,24 @@ export function ProductFamilyModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("catalog.productFamilies.name")}
-          error={fieldError(errors.name?.message)}
-          {...register("name", {
-            onChange: (e) => {
-              if (!slugEdited) {
-                setValue("slug", slugify(e.target.value), {
-                  shouldValidate: true,
-                });
-              }
-            },
-          })}
-        />
+        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("catalog.productFamilies.name")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.name?.[locale]?.message)}
+              {...register(`name.${locale}` as const, {
+                onChange: (e) => {
+                  // slug derives from RU only — it is structural, not per-language
+                  if (!slugEdited && locale === "ru") {
+                    setValue("slug", slugify(e.target.value), {
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
+            />
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("catalog.productFamilies.slug")}

@@ -1,6 +1,8 @@
+import type { Translatable } from "../api/i18n";
+
 export interface Certificate {
   id: number;
-  title: string;
+  title: Translatable | string;
   image: string;
   file: string;
   created_at: string;
@@ -8,7 +10,7 @@ export interface Certificate {
 }
 
 export interface CertificatePayload {
-  title: string;
+  title: Translatable;
   image: string;
   file: string;
 }
@@ -17,7 +19,7 @@ export type PatchCertificateRequest = Partial<CertificatePayload>;
 
 export interface Partner {
   id: number;
-  name: string;
+  name: Translatable | string;
   logo: string;
   website: string;
   created_at: string;
@@ -25,7 +27,7 @@ export interface Partner {
 }
 
 export interface PartnerPayload {
-  name: string;
+  name: Translatable;
   logo?: string;
   website: string;
 }

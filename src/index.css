@@ -6,3 +6,21 @@ body {
   margin: 0;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
 }
+
+/* Interactive controls get a pointer. The browser UA stylesheet gives
+   <button> cursor: default, so this has to be set explicitly.
+   Kept in @layer base so any per-element cursor-* utility still wins. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary,
+  label[for],
+  select {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}

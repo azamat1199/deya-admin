@@ -8,6 +8,8 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 import { CatalogItemModal } from "./CatalogItemModal";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { CatalogItemBase, CatalogItemPayload } from "../../types/catalog";
 
@@ -30,6 +32,7 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
   api: CatalogItemApi<T>;
 }) {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const tt = (key: string) => t(`${i18nNamespace}.${key}`);
   const { items, isLoading, hasError, upsert, replace, remove } = useCrudList(
     api.list,
@@ -84,7 +87,7 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
         item.image ? (
           <img
             src={item.image}
-            alt={item.name}
+            alt={resolve(item.name, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -97,7 +100,7 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
       key: "name",
       header: tt("name"),
       render: (item) => (
-        <span className="text-slate-900 dark:text-white">{item.name}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(item.name, locale)}</span>
       ),
     },
     {
@@ -188,7 +191,7 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
         isLoading={isDeleting}
         title={tt("confirmDeleteTitle")}
         message={t(`${i18nNamespace}.confirmDeleteMessage`, {
-          name: deletingItem?.name ?? "",
+          name: resolve(deletingItem?.name, locale),
         })}
         confirmLabel={tt("delete")}
         cancelLabel={tt("cancel")}

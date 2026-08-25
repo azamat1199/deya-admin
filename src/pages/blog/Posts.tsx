@@ -9,11 +9,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { PostModal } from "./PostModal";
 import { blogApi } from "../../api/blog";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Post } from "../../types/blog";
 
 export default function Posts() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, replace, remove } = useCrudList(
     blogApi.getPosts,
   );
@@ -57,7 +60,7 @@ export default function Posts() {
         p.cover ? (
           <img
             src={p.cover}
-            alt={p.title}
+            alt={resolve(p.title, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -71,7 +74,7 @@ export default function Posts() {
       header: t("blog.posts.postTitle"),
       render: (p) => (
         <span className="line-clamp-1 max-w-xs text-slate-900 dark:text-white">
-          {p.title}
+          {resolve(p.title, locale)}
         </span>
       ),
     },
@@ -156,7 +159,7 @@ export default function Posts() {
         isLoading={isDeleting}
         title={t("blog.posts.confirmDeleteTitle")}
         message={t("blog.posts.confirmDeleteMessage", {
-          name: deletingPost?.title ?? "",
+          name: resolve(deletingPost?.title, locale),
         })}
         confirmLabel={t("blog.posts.delete")}
         cancelLabel={t("blog.posts.cancel")}

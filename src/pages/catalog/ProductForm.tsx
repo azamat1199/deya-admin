@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -15,18 +15,32 @@ import { Switch } from "../../components/ui/Switch";
 import { Button } from "../../components/ui/Button";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, resolve, toTranslatable } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { slugify } from "../../utils/slugify";
 import { useCrudList } from "../../hooks/useCrudList";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { PRODUCT_BADGES } from "../../types/catalog";
 import type { Product } from "../../types/catalog";
+
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
 
 const schema = z.object({
   category: z.string().regex(/^\d+$/, "categoryRequired"),
   family: z.string().regex(/^\d+$/, "familyRequired"),
   flavor: z.string().regex(/^\d+$/, "flavorRequired"),
-  name: z.string().min(1, "nameRequired"),
+  name: translatableField.refine(
+    (v) => Object.values(v).some((x) => x.trim()),
+    {
+      message: "nameRequired",
+    },
+  ),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
-  description: z.string(),
+  description: translatableField,
   code: z.string(),
   box_weight: z.string(),
   // Soft cap — the real max is unconfirmed beyond Swagger's generic 32767
@@ -46,9 +60,9 @@ function buildEmptyValues(sortOrder: number): FormValues {
     category: "",
     family: "",
     flavor: "",
-    name: "",
+    name: { ru: "", uz: "", en: "" },
     slug: "",
-    description: "",
+    description: { ru: "", uz: "", en: "" },
     code: "",
     box_weight: "",
     shelf_life_months: "0",
@@ -67,6 +81,7 @@ export function ProductForm({
   product?: Product;
 }) {
   const { t } = useTranslation();
+  const locale = useLocale();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFeatured, setIsFeatured] = useState(false);
@@ -103,8 +118,12 @@ export function ProductForm({
     defaultValues: buildEmptyValues(0),
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
-     the loaded item; a documented, standard effect use case
+     the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!product) return;
@@ -112,9 +131,10 @@ export function ProductForm({
       category: String(product.category),
       family: String(product.family),
       flavor: String(product.flavor),
-      name: product.name,
+      // full objects in state — never resolve to a string on load
+      name: toTranslatable(product.name),
       slug: product.slug,
-      description: product.description,
+      description: toTranslatable(product.description),
       code: product.code,
       box_weight: product.box_weight,
       shelf_life_months: String(product.shelf_life_months),
@@ -126,6 +146,7 @@ export function ProductForm({
     setIsFeatured(product.is_featured);
     setIsActive(product.is_active);
   }, [product, reset]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Create mode only: once the product list has loaded, default sort_order
   // to max+1 — unless the user has already typed their own value.
@@ -133,37 +154,50 @@ export function ProductForm({
     if (mode !== "create" || productsList.isLoading) return;
     if (dirtyFields.sort_order) return;
     setValue("sort_order", String(nextSortOrder));
-  }, [mode, productsList.isLoading, nextSortOrder, dirtyFields.sort_order, setValue]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }, [
+    mode,
+    productsList.isLoading,
+    nextSortOrder,
+    dirtyFields.sort_order,
+    setValue,
+  ]);
 
   const categoryOptions = useMemo(
     () =>
       [...categoriesList.items]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((c) => ({ value: String(c.id), label: c.name })),
-    [categoriesList.items],
+        .sort((a, b) =>
+          resolve(a.name, locale).localeCompare(resolve(b.name, locale)),
+        )
+        .map((c) => ({ value: String(c.id), label: resolve(c.name, locale) })),
+    [categoriesList.items, locale],
   );
   const familyOptions = useMemo(
     () =>
       [...familiesList.items]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((f) => ({ value: String(f.id), label: f.name })),
-    [familiesList.items],
+        .sort((a, b) =>
+          resolve(a.name, locale).localeCompare(resolve(b.name, locale)),
+        )
+        .map((f) => ({ value: String(f.id), label: resolve(f.name, locale) })),
+    [familiesList.items, locale],
   );
   const flavorOptions = useMemo(
     () =>
       [...flavorsList.items]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((f) => ({ value: String(f.id), label: f.name })),
-    [flavorsList.items],
+        .sort((a, b) =>
+          resolve(a.name, locale).localeCompare(resolve(b.name, locale)),
+        )
+        .map((f) => ({ value: String(f.id), label: resolve(f.name, locale) })),
+    [flavorsList.items, locale],
   );
   const relatedProductOptions = useMemo(
     () =>
       productsList.items
         .filter((p) => mode !== "edit" || p.id !== product?.id)
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((p) => ({ value: String(p.id), label: p.name })),
-    [productsList.items, mode, product],
+        .sort((a, b) =>
+          resolve(a.name, locale).localeCompare(resolve(b.name, locale)),
+        )
+        .map((p) => ({ value: String(p.id), label: resolve(p.name, locale) })),
+    [productsList.items, mode, product, locale],
   );
   const weightOptions = useMemo(
     () =>
@@ -193,9 +227,12 @@ export function ProductForm({
         category: Number(values.category),
         family: Number(values.family),
         flavor: Number(values.flavor),
-        name: values.name,
+        name: buildTranslatable(values.name, product?.name),
         slug: values.slug,
-        description: values.description,
+        description: buildTranslatable(
+          values.description,
+          product?.description,
+        ),
         code: values.code,
         box_weight: values.box_weight,
         shelf_life_months: Number(values.shelf_life_months),
@@ -212,7 +249,11 @@ export function ProductForm({
         await catalogApi.createProduct(payload);
       }
       toast.success(
-        t(product ? "catalog.products.updateSuccess" : "catalog.products.createSuccess"),
+        t(
+          product
+            ? "catalog.products.updateSuccess"
+            : "catalog.products.createSuccess",
+        ),
       );
       navigate("/catalog/products");
     } catch (error) {
@@ -299,19 +340,34 @@ export function ProductForm({
             />
           </div>
 
-          <Input
-            label={t("catalog.products.name")}
-            error={fieldError(errors.name?.message)}
-            {...register("name", {
-              onChange: (e) => {
-                if (!slugEdited) {
-                  setValue("slug", slugify(e.target.value), {
-                    shouldValidate: true,
-                  });
-                }
-              },
-            })}
-          />
+          <TranslatableFields
+            fields={["name", "description"]}
+            values={watchedValues}
+            errors={errors}
+          >
+            {(locale) => (
+              <>
+                <Input
+                  label={`${t("catalog.products.name")} (${locale.toUpperCase()})`}
+                  error={fieldError(errors.name?.[locale]?.message)}
+                  {...register(`name.${locale}` as const, {
+                    onChange: (e) => {
+                      if (!slugEdited && locale === "ru") {
+                        setValue("slug", slugify(e.target.value), {
+                          shouldValidate: true,
+                        });
+                      }
+                    },
+                  })}
+                />
+                <Textarea
+                  label={`${t("catalog.products.description")} (${locale.toUpperCase()})`}
+                  error={fieldError(errors.description?.[locale]?.message)}
+                  {...register(`description.${locale}` as const)}
+                />
+              </>
+            )}
+          </TranslatableFields>
 
           <Input
             label={t("catalog.products.slug")}
@@ -445,7 +501,11 @@ export function ProductForm({
             {t("catalog.products.cancel")}
           </Button>
           <Button type="submit" isLoading={isSubmitting}>
-            {t(mode === "edit" ? "catalog.products.save" : "catalog.products.create")}
+            {t(
+              mode === "edit"
+                ? "catalog.products.save"
+                : "catalog.products.create",
+            )}
           </Button>
         </div>
       </form>

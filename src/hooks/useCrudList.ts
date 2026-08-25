@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Paginated } from "../types/i18n";
+import type { Paginated } from "../api/i18n";
 
 interface CrudListState<T> {
   items: T[];

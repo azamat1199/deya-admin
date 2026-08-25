@@ -31,7 +31,7 @@ export function AdminLayout() {
       />
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 lg:hidden"
+          className="fixed inset-0 z-20 cursor-pointer bg-black/30 lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -11,24 +11,31 @@ import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
-import { toLocalizedText } from "../../utils/localized";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { Slide } from "../../types/about";
 
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+const requiredTranslatable = (message: string) =>
+  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message,
+  });
+
 const schema = z.object({
-  title_uz: z.string().min(1, "titleRequired"),
-  title_ru: z.string().min(1, "titleRequired"),
-  description_uz: z.string().min(1, "descriptionRequired"),
-  description_ru: z.string().min(1, "descriptionRequired"),
+  title: requiredTranslatable("titleRequired"),
+  description: requiredTranslatable("descriptionRequired"),
   order: z.string().regex(/^\d+$/, "orderInvalid"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = {
-  title_uz: "",
-  title_ru: "",
-  description_uz: "",
-  description_ru: "",
+  title: { ru: "", uz: "", en: "" },
+  description: { ru: "", uz: "", en: "" },
   order: "0",
 };
 
@@ -56,25 +63,27 @@ export function SlideModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (slide) {
-      const title = toLocalizedText(slide.title);
-      const description = toLocalizedText(slide.description);
       reset({
-        title_uz: title.uz,
-        title_ru: title.ru,
-        description_uz: description.uz,
-        description_ru: description.ru,
+        title: toTranslatable(slide.title),
+        description: toTranslatable(slide.description),
         order: String(slide.order),
       });
     } else {
@@ -85,6 +94,7 @@ export function SlideModal({
     setImageError(null);
   }, [isOpen, slide, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     if (!imageUrl) {
@@ -94,8 +104,8 @@ export function SlideModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: { uz: values.title_uz, ru: values.title_ru },
-        description: { uz: values.description_uz, ru: values.description_ru },
+        title: buildTranslatable(values.title, slide?.title),
+        description: buildTranslatable(values.description, slide?.description),
         order: Number(values.order),
         is_active: isActive,
         image: imageUrl,
@@ -139,30 +149,26 @@ export function SlideModal({
           error={imageError}
         />
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label={`${t("about.slides.slideTitle")} (UZ)`}
-            error={fieldError(errors.title_uz?.message)}
-            {...register("title_uz")}
-          />
-          <Input
-            label={`${t("about.slides.slideTitle")} (RU)`}
-            error={fieldError(errors.title_ru?.message)}
-            {...register("title_ru")}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label={`${t("about.slides.description")} (UZ)`}
-            error={fieldError(errors.description_uz?.message)}
-            {...register("description_uz")}
-          />
-          <Input
-            label={`${t("about.slides.description")} (RU)`}
-            error={fieldError(errors.description_ru?.message)}
-            {...register("description_ru")}
-          />
-        </div>
+        <TranslatableFields
+          fields={["title", "description"]}
+          values={watchedValues}
+          errors={errors}
+        >
+          {(locale) => (
+            <>
+              <Input
+                label={`${t("about.slides.slideTitle")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.title?.[locale]?.message)}
+                {...register(`title.${locale}` as const)}
+              />
+              <Input
+                label={`${t("about.slides.description")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.description?.[locale]?.message)}
+                {...register(`description.${locale}` as const)}
+              />
+            </>
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("about.slides.order")}

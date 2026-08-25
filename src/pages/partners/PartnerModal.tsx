@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -9,17 +9,25 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { partnersApi } from "../../api/partners";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { Partner } from "../../types/partners";
 
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() })
+  .refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "nameRequired",
+  });
+
 const schema = z.object({
-  name: z.string().min(1, "nameRequired"),
+  name: translatableField,
   website: z.string().url("websiteInvalid").or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { name: "", website: "" };
+const emptyValues: FormValues = { name: { ru: "", uz: "", en: "" }, website: "" };
 
 export function PartnerModal({
   isOpen,
@@ -43,31 +51,38 @@ export function PartnerModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (partner) {
-      reset({ name: partner.name, website: partner.website });
+      reset({ name: toTranslatable(partner.name), website: partner.website });
     } else {
       reset(emptyValues);
     }
     setLogoUrl(partner?.logo ?? null);
   }, [isOpen, partner, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const payload = {
-        name: values.name,
+        name: buildTranslatable(values.name, partner?.name),
         website: values.website,
         ...(logoUrl ? { logo: logoUrl } : {}),
       };
@@ -99,11 +114,15 @@ export function PartnerModal({
       title={t(isEditing ? "partners.partners.edit" : "partners.partners.add")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("partners.partners.name")}
-          error={fieldError(errors.name?.message)}
-          {...register("name")}
-        />
+        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("partners.partners.name")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.name?.[locale]?.message)}
+              {...register(`name.${locale}` as const)}
+            />
+          )}
+        </TranslatableFields>
 
         <FileUpload
           label={`${t("partners.partners.logo")} (${t("partners.partners.optional")})`}

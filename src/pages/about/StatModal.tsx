@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -10,18 +10,31 @@ import { Switch } from "../../components/ui/Switch";
 import { Button } from "../../components/ui/Button";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
-import { toLocalizedText } from "../../utils/localized";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { Stat } from "../../types/about";
 
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+const requiredTranslatable = (message: string) =>
+  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message,
+  });
+
 const schema = z.object({
-  title_uz: z.string().min(1, "titleRequired"),
-  title_ru: z.string().min(1, "titleRequired"),
+  title: requiredTranslatable("titleRequired"),
   value: z.string().min(1, "valueRequired"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { title_uz: "", title_ru: "", value: "" };
+const emptyValues: FormValues = {
+  title: { ru: "", uz: "", en: "" },
+  value: "",
+};
 
 export function StatModal({
   isOpen,
@@ -44,32 +57,38 @@ export function StatModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (stat) {
-      const title = toLocalizedText(stat.title);
-      reset({ title_uz: title.uz, title_ru: title.ru, value: stat.value });
+      reset({ title: toTranslatable(stat.title), value: stat.value });
     } else {
       reset(emptyValues);
     }
     setIsActive(stat?.is_active ?? true);
   }, [isOpen, stat, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const payload = {
-        title: { uz: values.title_uz, ru: values.title_ru },
+        title: buildTranslatable(values.title, stat?.title),
         value: values.value,
         is_active: isActive,
       };
@@ -101,18 +120,15 @@ export function StatModal({
       title={t(isEditing ? "about.stats.editStat" : "about.stats.addStat")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label={`${t("about.stats.statTitle")} (UZ)`}
-            error={fieldError(errors.title_uz?.message)}
-            {...register("title_uz")}
-          />
-          <Input
-            label={`${t("about.stats.statTitle")} (RU)`}
-            error={fieldError(errors.title_ru?.message)}
-            {...register("title_ru")}
-          />
-        </div>
+        <TranslatableFields fields={["title"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("about.stats.statTitle")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.title?.[locale]?.message)}
+              {...register(`title.${locale}` as const)}
+            />
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("about.stats.value")}

@@ -12,7 +12,9 @@ import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
-import { LOCALES, DEFAULT_LOCALE, type Locale } from "../../types/i18n";
+import { LOCALES, type Locale } from "../../api/i18n";
+
+const DEFAULT_LOCALE: Locale = "ru";
 import type { CareerValue, PatchCareerValueRequest } from "../../types/careers";
 
 // Every locale is optional except the app's default (uz), which must be

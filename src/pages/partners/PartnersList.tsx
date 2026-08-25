@@ -8,11 +8,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { PartnerModal } from "./PartnerModal";
 import { partnersApi } from "../../api/partners";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Partner } from "../../types/partners";
 
 export default function PartnersList() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     partnersApi.getPartners,
   );
@@ -45,7 +48,7 @@ export default function PartnersList() {
         p.logo ? (
           <img
             src={p.logo}
-            alt={p.name}
+            alt={resolve(p.name, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -58,7 +61,7 @@ export default function PartnersList() {
       key: "name",
       header: t("partners.partners.name"),
       render: (p) => (
-        <span className="text-slate-900 dark:text-white">{p.name}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(p.name, locale)}</span>
       ),
     },
     {
@@ -135,7 +138,7 @@ export default function PartnersList() {
         isLoading={isDeleting}
         title={t("partners.partners.confirmDeleteTitle")}
         message={t("partners.partners.confirmDeleteMessage", {
-          name: deletingPartner?.name ?? "",
+          name: resolve(deletingPartner?.name, locale),
         })}
         confirmLabel={t("partners.partners.delete")}
         cancelLabel={t("partners.partners.cancel")}

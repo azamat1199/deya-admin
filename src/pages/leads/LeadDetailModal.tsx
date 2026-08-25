@@ -1,3 +1,5 @@
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, ExternalLink, X } from "lucide-react";
@@ -36,11 +38,13 @@ export function LeadDetailModal({
   products: Product[];
 }) {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
 
   if (!lead) return null;
 
   const productName = lead.product
-    ? (products.find((p) => p.id === lead.product)?.name ?? `#${lead.product}`)
+    ? (resolve(products.find((p) => p.id === lead.product)?.name, locale) ||
+      `#${lead.product}`)
     : null;
 
   return (

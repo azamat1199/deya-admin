@@ -1,15 +1,19 @@
-import type { LocalizedText } from "./common";
-
-export type { LocalizedText };
+import type { Translatable } from "../api/i18n";
 
 export interface ExportRegion {
   id: number;
-  name: string;
+  name: Translatable | string;
   position_x: string;
   position_y: string;
 }
 
-export type CreateExportRegionRequest = Omit<ExportRegion, "id">;
+export interface ExportRegionPayload {
+  name: Translatable;
+  position_x: string;
+  position_y: string;
+}
+
+export type CreateExportRegionRequest = ExportRegionPayload;
 
 export type UpdateExportRegionRequest = CreateExportRegionRequest;
 
@@ -23,16 +27,16 @@ export interface Slide {
   id: number;
   // Response shape unconfirmed — may come back as a plain string instead
   // of the {uz, ru} object the write payload expects.
-  title: LocalizedText | string;
-  description: LocalizedText | string;
+  title: Translatable | string;
+  description: Translatable | string;
   image: string;
   order: number;
   is_active: boolean;
 }
 
 export interface SlidePayload {
-  title: LocalizedText;
-  description: LocalizedText;
+  title: Translatable;
+  description: Translatable;
   image?: string;
   order: number;
   is_active: boolean;
@@ -49,13 +53,13 @@ export interface Stat {
   id: number;
   // Response shape unconfirmed — may come back as a plain string instead
   // of the {uz, ru} object the write payload expects.
-  title: LocalizedText | string;
+  title: Translatable | string;
   value: string;
   is_active: boolean;
 }
 
 export interface StatPayload {
-  title: LocalizedText;
+  title: Translatable;
   value: string;
   is_active: boolean;
 }
@@ -71,8 +75,8 @@ export type PatchStatRequest = Partial<StatPayload>;
 export interface TimelineItem {
   id: number;
   year: number;
-  title: LocalizedText | string;
-  description: LocalizedText | string;
+  title: Translatable | string;
+  description: Translatable | string;
   image: string;
   created_at?: string;
   updated_at?: string;
@@ -80,8 +84,8 @@ export interface TimelineItem {
 
 export interface TimelineItemPayload {
   year: number;
-  title: string;
-  description: string;
+  title: Translatable;
+  description: Translatable;
   image?: string;
 }
 

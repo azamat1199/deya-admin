@@ -8,11 +8,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { ProductImageModal } from "./ProductImageModal";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { ProductImage } from "../../types/catalog";
 
 export default function ProductImages() {
   const { t } = useTranslation();
+  const locale = useLocale();
   // The backend enforces "only one main image per product", so mutations
   // always refetch instead of merging responses in locally — that's the
   // only way to keep every row's is_main truthful after a PATCH/POST.
@@ -22,8 +25,8 @@ export default function ProductImages() {
   const productsList = useCrudList(catalogApi.getProducts);
 
   const productNames = useMemo(
-    () => new Map(productsList.items.map((p) => [p.id, p.name])),
-    [productsList.items],
+    () => new Map(productsList.items.map((p) => [p.id, resolve(p.name, locale)])),
+    [productsList.items, locale],
   );
 
   const sortedItems = useMemo(
@@ -78,7 +81,7 @@ export default function ProductImages() {
         img.image ? (
           <img
             src={img.image}
-            alt={img.alt}
+            alt={resolve(img.alt, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -96,7 +99,7 @@ export default function ProductImages() {
       key: "alt",
       header: t("catalog.productImages.alt"),
       render: (img) => (
-        <span className="line-clamp-1 max-w-xs">{img.alt || "—"}</span>
+        <span className="line-clamp-1 max-w-xs">{resolve(img.alt, locale) || "—"}</span>
       ),
     },
     {

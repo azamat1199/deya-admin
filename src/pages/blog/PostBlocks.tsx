@@ -8,11 +8,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { PostBlockModal } from "./PostBlockModal";
 import { blogApi } from "../../api/blog";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { PostBlock } from "../../types/blog";
 
 export default function PostBlocks() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     blogApi.getPostBlocks,
   );
@@ -21,8 +24,8 @@ export default function PostBlocks() {
   );
 
   const postTitleById = useMemo(
-    () => new Map(posts.map((p) => [p.id, p.title])),
-    [posts],
+    () => new Map(posts.map((p) => [p.id, resolve(p.title, locale)])),
+    [posts, locale],
   );
 
   const sortedItems = useMemo(
@@ -73,7 +76,7 @@ export default function PostBlocks() {
       key: "text",
       header: t("blog.postBlocks.text"),
       render: (b) => (
-        <span className="line-clamp-1 max-w-xs">{b.text}</span>
+        <span className="line-clamp-1 max-w-xs">{resolve(b.text, locale)}</span>
       ),
     },
     {

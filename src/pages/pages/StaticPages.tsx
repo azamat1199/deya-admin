@@ -7,11 +7,14 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 import { pagesApi } from "../../api/pages";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { StaticPage } from "../../types/pages";
 
 export default function StaticPages() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const navigate = useNavigate();
   const { items, isLoading, hasError, remove } = useCrudList(
     pagesApi.getStaticPages,
@@ -40,7 +43,7 @@ export default function StaticPages() {
       key: "title",
       header: t("pages.staticPages.pageTitle"),
       render: (p) => (
-        <span className="text-slate-900 dark:text-white">{p.title}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(p.title, locale)}</span>
       ),
     },
     {
@@ -93,7 +96,7 @@ export default function StaticPages() {
         isLoading={isDeleting}
         title={t("pages.staticPages.confirmDeleteTitle")}
         message={t("pages.staticPages.confirmDeleteMessage", {
-          name: deletingPage?.title ?? "",
+          name: resolve(deletingPage?.title, locale),
         })}
         confirmLabel={t("pages.staticPages.delete")}
         cancelLabel={t("pages.staticPages.cancel")}

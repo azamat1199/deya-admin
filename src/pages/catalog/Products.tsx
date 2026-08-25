@@ -9,6 +9,8 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Product } from "../../types/catalog";
 
@@ -27,6 +29,7 @@ function badgeChipClass(badge: string) {
 
 export default function Products() {
   const { t } = useTranslation();
+  const locale = useLocale();
   const navigate = useNavigate();
   const { items, isLoading, hasError, replace, remove } = useCrudList(
     catalogApi.getProducts,
@@ -36,16 +39,16 @@ export default function Products() {
   const flavorsList = useCrudList(catalogApi.getFlavors);
 
   const categoryNames = useMemo(
-    () => new Map(categoriesList.items.map((c) => [c.id, c.name])),
-    [categoriesList.items],
+    () => new Map(categoriesList.items.map((c) => [c.id, resolve(c.name, locale)])),
+    [categoriesList.items, locale],
   );
   const familyNames = useMemo(
-    () => new Map(familiesList.items.map((f) => [f.id, f.name])),
-    [familiesList.items],
+    () => new Map(familiesList.items.map((f) => [f.id, resolve(f.name, locale)])),
+    [familiesList.items, locale],
   );
   const flavorNames = useMemo(
-    () => new Map(flavorsList.items.map((f) => [f.id, f.name])),
-    [flavorsList.items],
+    () => new Map(flavorsList.items.map((f) => [f.id, resolve(f.name, locale)])),
+    [flavorsList.items, locale],
   );
 
   const sortedItems = useMemo(
@@ -96,7 +99,7 @@ export default function Products() {
       header: t("catalog.products.name"),
       render: (p) => (
         <span className="line-clamp-1 max-w-xs text-slate-900 dark:text-white">
-          {p.name}
+          {resolve(p.name, locale)}
         </span>
       ),
     },
@@ -198,7 +201,7 @@ export default function Products() {
         isLoading={isDeleting}
         title={t("catalog.products.confirmDeleteTitle")}
         message={t("catalog.products.confirmDeleteMessage", {
-          name: deletingProduct?.name ?? "",
+          name: resolve(deletingProduct?.name, locale),
         })}
         confirmLabel={t("catalog.products.delete")}
         cancelLabel={t("catalog.products.cancel")}

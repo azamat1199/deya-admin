@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -8,18 +8,32 @@ import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { aboutApi } from "../../api/about";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { ExportRegion } from "../../types/about";
 
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+
 const schema = z.object({
-  name: z.string().min(1, "nameRequired"),
+  name: translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "nameRequired",
+  }),
   position_x: z.string().min(1, "positionRequired"),
   position_y: z.string().min(1, "positionRequired"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { name: "", position_x: "", position_y: "" };
+const emptyValues: FormValues = {
+  name: { ru: "", uz: "", en: "" },
+  position_x: "",
+  position_y: "",
+};
 
 export function ExportRegionModal({
   isOpen,
@@ -41,18 +55,23 @@ export function ExportRegionModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
   useEffect(() => {
     if (isOpen) {
       reset(
         region
           ? {
-              name: region.name,
+              name: toTranslatable(region.name),
               position_x: region.position_x,
               position_y: region.position_y,
             }
@@ -68,9 +87,14 @@ export function ExportRegionModal({
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
+      const payload = {
+        name: buildTranslatable(values.name, region?.name),
+        position_x: values.position_x,
+        position_y: values.position_y,
+      };
       const { data } = region
-        ? await aboutApi.updateExportRegion(region.id, values)
-        : await aboutApi.createExportRegion(values);
+        ? await aboutApi.updateExportRegion(region.id, payload)
+        : await aboutApi.createExportRegion(payload);
       toast.success(
         t(
           region
@@ -104,11 +128,15 @@ export function ExportRegionModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("about.exportRegions.name")}
-          error={fieldError(errors.name?.message)}
-          {...register("name")}
-        />
+        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("about.exportRegions.name")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.name?.[locale]?.message)}
+              {...register(`name.${locale}` as const)}
+            />
+          )}
+        </TranslatableFields>
 
         <div className="grid grid-cols-2 gap-3">
           <Input

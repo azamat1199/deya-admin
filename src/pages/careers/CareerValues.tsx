@@ -12,7 +12,7 @@ import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
 import { useLocale } from "../../hooks/useLocale";
-import { tr } from "../../types/i18n";
+import { resolve } from "../../api/i18n";
 import type { CareerValue } from "../../types/careers";
 
 export default function CareerValues() {
@@ -66,8 +66,8 @@ export default function CareerValues() {
         v.image ? (
           <img
             src={v.image}
-            // alt must be a string — tr(), never the raw object.
-            alt={tr(v.title, locale)}
+            // alt must be a string — resolve(), never the raw object.
+            alt={resolve(v.title, locale)}
             loading="lazy"
             className="h-10 w-16 rounded object-cover"
           />
@@ -82,7 +82,7 @@ export default function CareerValues() {
       header: t("careers.careerValues.valueTitle"),
       render: (v) => (
         <span className="text-slate-900 dark:text-white">
-          {tr(v.title, locale)}
+          {resolve(v.title, locale)}
         </span>
       ),
     },
@@ -90,7 +90,7 @@ export default function CareerValues() {
       key: "text",
       header: t("careers.careerValues.text"),
       render: (v) => (
-        <span className="line-clamp-1 max-w-xs">{tr(v.text, locale)}</span>
+        <span className="line-clamp-1 max-w-xs">{resolve(v.text, locale)}</span>
       ),
     },
     {
@@ -164,7 +164,7 @@ export default function CareerValues() {
         message={t("careers.careerValues.confirmDeleteMessage", {
           // Interpolating the raw object here is the classic source of the
           // "Objects are not valid as a React child" crash.
-          name: tr(deletingValue?.title, locale),
+          name: resolve(deletingValue?.title, locale),
         })}
         confirmLabel={t("careers.careerValues.delete")}
         cancelLabel={t("careers.careerValues.cancel")}

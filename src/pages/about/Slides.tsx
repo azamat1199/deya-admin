@@ -10,16 +10,13 @@ import { SlideModal } from "./SlideModal";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
-import { toLocalizedText } from "../../utils/localized";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { Slide } from "../../types/about";
 
-function localizedTitle(slide: Slide, lang: string): string {
-  const title = toLocalizedText(slide.title);
-  return (lang === "ru" ? title.ru : title.uz) || title.uz || title.ru;
-}
-
 export default function Slides() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, replace, remove } = useCrudList(
     aboutApi.getSlides,
   );
@@ -63,7 +60,7 @@ export default function Slides() {
         s.image ? (
           <img
             src={s.image}
-            alt={localizedTitle(s, i18n.language)}
+            alt={resolve(s.title, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -77,7 +74,7 @@ export default function Slides() {
       header: t("about.slides.slideTitle"),
       render: (s) => (
         <span className="text-slate-900 dark:text-white">
-          {localizedTitle(s, i18n.language)}
+          {resolve(s.title, locale)}
         </span>
       ),
     },
@@ -150,7 +147,7 @@ export default function Slides() {
         isLoading={isDeleting}
         title={t("about.slides.confirmDeleteTitle")}
         message={t("about.slides.confirmDeleteMessage", {
-          name: deletingSlide ? localizedTitle(deletingSlide, i18n.language) : "",
+          name: deletingSlide ? resolve(deletingSlide.title, locale) : "",
         })}
         confirmLabel={t("about.slides.delete")}
         cancelLabel={t("about.slides.cancel")}

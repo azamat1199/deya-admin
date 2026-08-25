@@ -1,3 +1,5 @@
+import type { Translatable } from "../api/i18n";
+
 /**
  * Confirmed via Swagger. Full `type` enum unconfirmed beyond "heading" —
  * "text" and "image" are the likely remaining values; adjust
@@ -11,7 +13,7 @@ export interface PostBlock {
   id: number;
   post: number;
   type: PostBlockType;
-  text: string;
+  text: Translatable | string;
   image: string;
   sort_order: number;
   created_at: string;
@@ -21,7 +23,7 @@ export interface PostBlock {
 export interface PostBlockPayload {
   post: number;
   type: PostBlockType;
-  text: string;
+  text: Translatable;
   image?: string;
   sort_order: number;
 }
@@ -30,9 +32,9 @@ export type PatchPostBlockRequest = Partial<PostBlockPayload>;
 
 export interface Post {
   id: number;
-  title: string;
+  title: Translatable | string;
   slug: string;
-  excerpt: string;
+  excerpt: Translatable | string;
   cover: string;
   published_at: string;
   is_published: boolean;
@@ -41,9 +43,9 @@ export interface Post {
 }
 
 export interface PostPayload {
-  title: string;
+  title: Translatable;
   slug: string;
-  excerpt: string;
+  excerpt: Translatable;
   cover?: string;
   published_at: string;
   is_published: boolean;

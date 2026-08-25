@@ -7,11 +7,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { ProductFamilyModal } from "./ProductFamilyModal";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { ProductFamily } from "../../types/catalog";
 
 export default function ProductFamilies() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     catalogApi.getProductFamilies,
   );
@@ -45,7 +48,7 @@ export default function ProductFamilies() {
       key: "name",
       header: t("catalog.productFamilies.name"),
       render: (f) => (
-        <span className="text-slate-900 dark:text-white">{f.name}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(f.name, locale)}</span>
       ),
     },
     {
@@ -113,7 +116,7 @@ export default function ProductFamilies() {
         isLoading={isDeleting}
         title={t("catalog.productFamilies.confirmDeleteTitle")}
         message={t("catalog.productFamilies.confirmDeleteMessage", {
-          name: deletingFamily?.name ?? "",
+          name: resolve(deletingFamily?.name, locale),
         })}
         confirmLabel={t("catalog.productFamilies.delete")}
         cancelLabel={t("catalog.productFamilies.cancel")}

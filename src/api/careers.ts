@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { Paginated } from "../types/i18n";
+import type { Paginated } from "./i18n";
 import type {
   CareerValue,
   CareerValuePayload,

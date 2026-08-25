@@ -8,11 +8,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { CompanyModal } from "./CompanyModal";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Company } from "../../types/careers";
 
 export default function Companies() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     careersApi.getCompanies,
   );
@@ -45,7 +48,7 @@ export default function Companies() {
         c.image ? (
           <img
             src={c.image}
-            alt={c.name}
+            alt={resolve(c.name, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -58,7 +61,7 @@ export default function Companies() {
       key: "name",
       header: t("careers.companies.name"),
       render: (c) => (
-        <span className="text-slate-900 dark:text-white">{c.name}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(c.name, locale)}</span>
       ),
     },
     {
@@ -144,7 +147,7 @@ export default function Companies() {
         isLoading={isDeleting}
         title={t("careers.companies.confirmDeleteTitle")}
         message={t("careers.companies.confirmDeleteMessage", {
-          name: deletingCompany?.name ?? "",
+          name: resolve(deletingCompany?.name, locale),
         })}
         confirmLabel={t("careers.companies.delete")}
         cancelLabel={t("careers.companies.cancel")}

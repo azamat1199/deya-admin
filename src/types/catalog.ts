@@ -1,7 +1,9 @@
+import type { Translatable } from "../api/i18n";
+
 /** Shared shape for simple catalog resources (Categories, Flavors, ...). */
 export interface CatalogItemBase {
   id: number;
-  name: string;
+  name: Translatable | string;
   slug: string;
   image: string;
   sort_order: number;
@@ -11,7 +13,7 @@ export interface CatalogItemBase {
 }
 
 export interface CatalogItemPayload {
-  name: string;
+  name: Translatable;
   slug: string;
   image?: string;
   sort_order: number;
@@ -28,14 +30,14 @@ export type PatchFlavorRequest = Partial<FlavorPayload>;
 
 export interface ProductFamily {
   id: number;
-  name: string;
+  name: Translatable | string;
   slug: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface ProductFamilyPayload {
-  name: string;
+  name: Translatable;
   slug: string;
 }
 
@@ -45,7 +47,7 @@ export interface ProductImage {
   id: number;
   product: number;
   image: string;
-  alt: string;
+  alt: Translatable | string;
   is_main: boolean;
   sort_order: number;
   created_at: string;
@@ -55,7 +57,7 @@ export interface ProductImage {
 export interface ProductImagePayload {
   product: number;
   image: string;
-  alt: string;
+  alt: Translatable;
   is_main: boolean;
   sort_order: number;
 }
@@ -75,9 +77,9 @@ export interface Product {
   category: number;
   family: number;
   flavor: number;
-  name: string;
+  name: Translatable | string;
   slug: string;
-  description: string;
+  description: Translatable | string;
   code: string;
   box_weight: string;
   shelf_life_months: number;
@@ -95,9 +97,9 @@ export interface ProductPayload {
   category: number;
   family: number;
   flavor: number;
-  name: string;
+  name: Translatable;
   slug: string;
-  description: string;
+  description: Translatable;
   code: string;
   box_weight: string;
   shelf_life_months: number;

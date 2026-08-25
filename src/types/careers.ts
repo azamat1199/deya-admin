@@ -1,4 +1,4 @@
-import type { Translated } from "./i18n";
+import type { Translatable } from "../api/i18n";
 
 /**
  * `title` and `text` are multilingual: the API returns and expects
@@ -8,16 +8,16 @@ import type { Translated } from "./i18n";
  */
 export interface CareerValue {
   id: number;
-  title: Translated;
-  text: Translated;
+  title: Translatable | string;
+  text: Translatable | string;
   image: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface CareerValuePayload {
-  title: Translated;
-  text: Translated;
+  title: Translatable;
+  text: Translatable;
   image?: string;
 }
 
@@ -25,9 +25,9 @@ export type PatchCareerValueRequest = Partial<CareerValuePayload>;
 
 export interface Company {
   id: number;
-  name: string;
+  name: Translatable | string;
   slug: string;
-  description: string;
+  description: Translatable | string;
   image: string;
   vacancies_url: string;
   created_at: string;
@@ -35,9 +35,9 @@ export interface Company {
 }
 
 export interface CompanyPayload {
-  name: string;
+  name: Translatable;
   slug: string;
-  description: string;
+  description: Translatable;
   image?: string;
   vacancies_url: string;
 }

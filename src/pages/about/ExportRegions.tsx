@@ -7,11 +7,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { ExportRegionModal } from "./ExportRegionModal";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { ExportRegion } from "../../types/about";
 
 export default function ExportRegions() {
   const { t } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     aboutApi.getExportRegions,
   );
@@ -45,7 +48,7 @@ export default function ExportRegions() {
       key: "name",
       header: t("about.exportRegions.name"),
       render: (r) => (
-        <span className="text-slate-900 dark:text-white">{r.name}</span>
+        <span className="text-slate-900 dark:text-white">{resolve(r.name, locale)}</span>
       ),
     },
     {
@@ -106,7 +109,7 @@ export default function ExportRegions() {
         isLoading={isDeleting}
         title={t("about.exportRegions.confirmDeleteTitle")}
         message={t("about.exportRegions.confirmDeleteMessage", {
-          name: deletingRegion?.name ?? "",
+          name: resolve(deletingRegion?.name, locale),
         })}
         confirmLabel={t("about.exportRegions.delete")}
         cancelLabel={t("about.exportRegions.cancel")}

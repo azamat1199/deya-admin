@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -9,16 +9,24 @@ import { Input } from "../../components/ui/Input";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { partnersApi } from "../../api/partners";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import type { Certificate } from "../../types/partners";
 
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() })
+  .refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "titleRequired",
+  });
+
 const schema = z.object({
-  title: z.string().min(1, "titleRequired"),
+  title: translatableField,
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = { title: "" };
+const emptyValues: FormValues = { title: { ru: "", uz: "", en: "" } };
 
 export function CertificateModal({
   isOpen,
@@ -46,19 +54,25 @@ export function CertificateModal({
     handleSubmit,
     reset,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (certificate) {
-      reset({ title: certificate.title });
+      reset({ title: toTranslatable(certificate.title) });
     } else {
       reset(emptyValues);
     }
@@ -68,6 +82,7 @@ export function CertificateModal({
     setFileError(null);
   }, [isOpen, certificate, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     let hasError = false;
@@ -84,7 +99,7 @@ export function CertificateModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: values.title,
+        title: buildTranslatable(values.title, certificate?.title),
         image: imageUrl as string,
         file: fileUrl as string,
       };
@@ -122,11 +137,15 @@ export function CertificateModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("partners.certificates.certTitle")}
-          error={fieldError(errors.title?.message)}
-          {...register("title")}
-        />
+        <TranslatableFields fields={["title"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t("partners.certificates.certTitle")} (${locale.toUpperCase()})`}
+              error={fieldError(errors.title?.[locale]?.message)}
+              {...register(`title.${locale}` as const)}
+            />
+          )}
+        </TranslatableFields>
 
         <FileUpload
           label={t("partners.certificates.image")}

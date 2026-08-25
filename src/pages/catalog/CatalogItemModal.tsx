@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -9,12 +9,24 @@ import { Input } from "../../components/ui/Input";
 import { Switch } from "../../components/ui/Switch";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { slugify } from "../../utils/slugify";
 import type { CatalogItemBase, CatalogItemPayload } from "../../types/catalog";
 
+// `name` is admin-authored free text -> translatable. slug / sort_order /
+// is_active / image are structural and stay plain.
+const translatable = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
+
 const schema = z.object({
-  name: z.string().min(1, "nameRequired"),
+  name: translatable.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message: "nameRequired",
+  }),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
   // Soft cap — sort_order's real max is unconfirmed beyond Swagger's
   // generic 32767 example (looks like a SmallIntegerField default).
@@ -24,7 +36,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 function buildEmptyValues(sortOrder: number): FormValues {
-  return { name: "", slug: "", sort_order: String(sortOrder) };
+  return {
+    name: { ru: "", uz: "", en: "" },
+    slug: "",
+    sort_order: String(sortOrder),
+  };
 }
 
 /** Add/edit form shared by every simple catalog resource (Categories,
@@ -66,12 +82,18 @@ export function CatalogItemModal<T extends CatalogItemBase>({
     reset,
     setValue,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: buildEmptyValues(nextSortOrder),
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -79,7 +101,8 @@ export function CatalogItemModal<T extends CatalogItemBase>({
     if (!isOpen) return;
     if (item) {
       reset({
-        name: item.name,
+        // full object in state — never resolve to a string on load
+        name: toTranslatable(item.name),
         slug: item.slug,
         sort_order: String(item.sort_order),
       });
@@ -94,12 +117,13 @@ export function CatalogItemModal<T extends CatalogItemBase>({
     setImageUrl(item?.image ?? null);
   }, [isOpen, item, nextSortOrder, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const payload: CatalogItemPayload = {
-        name: values.name,
+        name: buildTranslatable(values.name, item?.name),
         slug: values.slug,
         sort_order: Number(values.sort_order),
         is_active: isActive,
@@ -133,19 +157,25 @@ export function CatalogItemModal<T extends CatalogItemBase>({
       title={t(isEditing ? `${i18nNamespace}.edit` : `${i18nNamespace}.add`)}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t(`${i18nNamespace}.name`)}
-          error={fieldError(errors.name?.message)}
-          {...register("name", {
-            onChange: (e) => {
-              if (!slugEdited) {
-                setValue("slug", slugify(e.target.value), {
-                  shouldValidate: true,
-                });
-              }
-            },
-          })}
-        />
+        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+          {(locale) => (
+            <Input
+              label={`${t(`${i18nNamespace}.name`)} (${locale.toUpperCase()})`}
+              error={fieldError(errors.name?.[locale]?.message)}
+              {...register(`name.${locale}` as const, {
+                onChange: (e) => {
+                  // slug is derived from the RU value only — it is a
+                  // structural field, not one value per language.
+                  if (!slugEdited && locale === "ru") {
+                    setValue("slug", slugify(e.target.value), {
+                      shouldValidate: true,
+                    });
+                  }
+                },
+              })}
+            />
+          )}
+        </TranslatableFields>
 
         <Input
           label={t(`${i18nNamespace}.slug`)}

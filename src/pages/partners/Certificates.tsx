@@ -8,11 +8,14 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { CertificateModal } from "./CertificateModal";
 import { partnersApi } from "../../api/partners";
 import { getApiErrorMessage } from "../../api/client";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Certificate } from "../../types/partners";
 
 export default function Certificates() {
   const { t, i18n } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     partnersApi.getCertificates,
   );
@@ -48,7 +51,7 @@ export default function Certificates() {
         c.image ? (
           <img
             src={c.image}
-            alt={c.title}
+            alt={resolve(c.title, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -62,7 +65,7 @@ export default function Certificates() {
       header: t("partners.certificates.certTitle"),
       render: (c) => (
         <span className="line-clamp-1 max-w-xs text-slate-900 dark:text-white">
-          {c.title}
+          {resolve(c.title, locale)}
         </span>
       ),
     },
@@ -140,7 +143,7 @@ export default function Certificates() {
         isLoading={isDeleting}
         title={t("partners.certificates.confirmDeleteTitle")}
         message={t("partners.certificates.confirmDeleteMessage", {
-          name: deletingCertificate?.title ?? "",
+          name: resolve(deletingCertificate?.title, locale),
         })}
         confirmLabel={t("partners.certificates.delete")}
         cancelLabel={t("partners.certificates.cancel")}

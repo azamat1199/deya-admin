@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -10,14 +10,24 @@ import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { careersApi } from "../../api/careers";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { slugify } from "../../utils/slugify";
 import type { Company } from "../../types/careers";
 
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() });
+const requiredTranslatable = (message: string) =>
+  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message,
+  });
+
+
 const schema = z.object({
-  name: z.string().min(1, "nameRequired"),
+  name: requiredTranslatable("nameRequired"),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
-  description: z.string(),
+  description: translatableField,
   vacancies_url: z.string().min(1, "vacanciesUrlRequired"),
 });
 
@@ -31,9 +41,9 @@ function withScheme(value: string): string {
 }
 
 const emptyValues: FormValues = {
-  name: "",
+  name: { ru: "", uz: "", en: "" },
   slug: "",
-  description: "",
+  description: { ru: "", uz: "", en: "" },
   vacancies_url: "",
 };
 
@@ -64,12 +74,18 @@ export function CompanyModal({
     reset,
     setValue,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: emptyValues,
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -77,9 +93,9 @@ export function CompanyModal({
     if (!isOpen) return;
     if (company) {
       reset({
-        name: company.name,
+        name: toTranslatable(company.name),
         slug: company.slug,
-        description: company.description,
+        description: toTranslatable(company.description),
         vacancies_url: company.vacancies_url,
       });
       // Editing an existing company: its slug is already established, so
@@ -92,14 +108,15 @@ export function CompanyModal({
     setImageUrl(company?.image ?? null);
   }, [isOpen, company, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const payload = {
-        name: values.name,
+        name: buildTranslatable(values.name, company?.name),
         slug: values.slug,
-        description: values.description,
+        description: buildTranslatable(values.description, company?.description),
         vacancies_url: withScheme(values.vacancies_url),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
@@ -139,19 +156,34 @@ export function CompanyModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("careers.companies.name")}
-          error={fieldError(errors.name?.message)}
-          {...register("name", {
-            onChange: (e) => {
-              if (!slugEdited) {
-                setValue("slug", slugify(e.target.value), {
-                  shouldValidate: true,
-                });
-              }
-            },
-          })}
-        />
+        <TranslatableFields
+          fields={["name", "description"]}
+          values={watchedValues}
+          errors={errors}
+        >
+          {(locale) => (
+            <>
+              <Input
+                label={`${t("careers.companies.name")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.name?.[locale]?.message)}
+                {...register(`name.${locale}` as const, {
+                  onChange: (e) => {
+                    if (!slugEdited && locale === "ru") {
+                      setValue("slug", slugify(e.target.value), {
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
+              />
+              <Textarea
+                label={`${t("careers.companies.description")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.description?.[locale]?.message)}
+                {...register(`description.${locale}` as const)}
+              />
+            </>
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("careers.companies.slug")}
@@ -159,12 +191,6 @@ export function CompanyModal({
           {...register("slug", {
             onChange: () => setSlugEdited(true),
           })}
-        />
-
-        <Textarea
-          label={t("careers.companies.description")}
-          error={fieldError(errors.description?.message)}
-          {...register("description")}
         />
 
         <FileUpload

@@ -9,19 +9,13 @@ import { TimelineModal } from "./TimelineModal";
 import { aboutApi } from "../../api/about";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
-import { toLocalizedText } from "../../utils/localized";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { TimelineItem } from "../../types/about";
 
-function localizedText(
-  value: TimelineItem["title"],
-  lang: string,
-): string {
-  const text = toLocalizedText(value);
-  return (lang === "ru" ? text.ru : text.uz) || text.uz || text.ru;
-}
-
 export default function Timeline() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     aboutApi.getTimeline,
   );
@@ -59,7 +53,7 @@ export default function Timeline() {
         i.image ? (
           <img
             src={i.image}
-            alt={localizedText(i.title, i18n.language)}
+            alt={resolve(i.title, locale)}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -80,14 +74,14 @@ export default function Timeline() {
     {
       key: "title",
       header: t("about.timeline.itemTitle"),
-      render: (i) => localizedText(i.title, i18n.language),
+      render: (i) => resolve(i.title, locale),
     },
     {
       key: "description",
       header: t("about.timeline.description"),
       render: (i) => (
         <span className="line-clamp-1 max-w-xs">
-          {localizedText(i.description, i18n.language)}
+          {resolve(i.description, locale)}
         </span>
       ),
     },
@@ -140,7 +134,7 @@ export default function Timeline() {
         title={t("about.timeline.confirmDeleteTitle")}
         message={t("about.timeline.confirmDeleteMessage", {
           name: deletingItem
-            ? localizedText(deletingItem.title, i18n.language)
+            ? resolve(deletingItem.title, locale)
             : "",
         })}
         confirmLabel={t("about.timeline.delete")}

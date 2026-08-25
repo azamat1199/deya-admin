@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
@@ -11,14 +11,24 @@ import { Switch } from "../../components/ui/Switch";
 import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { blogApi } from "../../api/blog";
+import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
+import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { slugify } from "../../utils/slugify";
 import type { Post } from "../../types/blog";
 
+const translatableField = z
+  .object({ ru: z.string(), uz: z.string(), en: z.string() });
+const requiredTranslatable = (message: string) =>
+  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
+    message,
+  });
+
+
 const schema = z.object({
-  title: z.string().min(1, "titleRequired"),
+  title: requiredTranslatable("titleRequired"),
   slug: z.string().regex(/^[a-z0-9-]+$/, "slugInvalid"),
-  excerpt: z.string(),
+  excerpt: translatableField,
   published_at: z.string().min(1, "publishedAtRequired"),
 });
 
@@ -34,9 +44,9 @@ function toDatetimeLocalValue(date: Date): string {
 
 function buildEmptyValues(): FormValues {
   return {
-    title: "",
+    title: { ru: "", uz: "", en: "" },
     slug: "",
-    excerpt: "",
+    excerpt: { ru: "", uz: "", en: "" },
     published_at: toDatetimeLocalValue(new Date()),
   };
 }
@@ -69,12 +79,18 @@ export function PostModal({
     reset,
     setValue,
     setError,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: buildEmptyValues(),
   });
 
+  // useWatch instead of watch(): watch() is not memo-safe and makes
+  // React Compiler bail out of optimizing the whole component.
+  const watchedValues = useWatch({ control });
+
+   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -82,9 +98,9 @@ export function PostModal({
     if (!isOpen) return;
     if (post) {
       reset({
-        title: post.title,
+        title: toTranslatable(post.title),
         slug: post.slug,
-        excerpt: post.excerpt,
+        excerpt: toTranslatable(post.excerpt),
         published_at: toDatetimeLocalValue(new Date(post.published_at)),
       });
       // Editing an existing post: its slug is already established, so
@@ -98,14 +114,15 @@ export function PostModal({
     setCoverUrl(post?.cover ?? null);
   }, [isOpen, post, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
+   
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
       const payload = {
-        title: values.title,
+        title: buildTranslatable(values.title, post?.title),
         slug: values.slug,
-        excerpt: values.excerpt,
+        excerpt: buildTranslatable(values.excerpt, post?.excerpt),
         published_at: new Date(values.published_at).toISOString(),
         is_published: isPublished,
         ...(coverUrl ? { cover: coverUrl } : {}),
@@ -136,19 +153,34 @@ export function PostModal({
       title={t(isEditing ? "blog.posts.editPost" : "blog.posts.addPost")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <Input
-          label={t("blog.posts.postTitle")}
-          error={fieldError(errors.title?.message)}
-          {...register("title", {
-            onChange: (e) => {
-              if (!slugEdited) {
-                setValue("slug", slugify(e.target.value), {
-                  shouldValidate: true,
-                });
-              }
-            },
-          })}
-        />
+        <TranslatableFields
+          fields={["title", "excerpt"]}
+          values={watchedValues}
+          errors={errors}
+        >
+          {(locale) => (
+            <>
+              <Input
+                label={`${t("blog.posts.postTitle")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.title?.[locale]?.message)}
+                {...register(`title.${locale}` as const, {
+                  onChange: (e) => {
+                    if (!slugEdited && locale === "ru") {
+                      setValue("slug", slugify(e.target.value), {
+                        shouldValidate: true,
+                      });
+                    }
+                  },
+                })}
+              />
+              <Textarea
+                label={`${t("blog.posts.excerpt")} (${locale.toUpperCase()})`}
+                error={fieldError(errors.excerpt?.[locale]?.message)}
+                {...register(`excerpt.${locale}` as const)}
+              />
+            </>
+          )}
+        </TranslatableFields>
 
         <Input
           label={t("blog.posts.slug")}
@@ -156,12 +188,6 @@ export function PostModal({
           {...register("slug", {
             onChange: () => setSlugEdited(true),
           })}
-        />
-
-        <Textarea
-          label={t("blog.posts.excerpt")}
-          error={fieldError(errors.excerpt?.message)}
-          {...register("excerpt")}
         />
 
         <FileUpload
