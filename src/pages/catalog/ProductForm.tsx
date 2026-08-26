@@ -377,11 +377,6 @@ export function ProductForm({
             })}
           />
 
-          <Textarea
-            label={t("catalog.products.description")}
-            error={fieldError(errors.description?.message)}
-            {...register("description")}
-          />
         </Card>
 
         <Card className="flex flex-col gap-4 p-6">
