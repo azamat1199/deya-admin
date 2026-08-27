@@ -11,7 +11,7 @@ import {
   Contact,
   FileText,
   Handshake,
-  Users,
+  // Users,
   Settings,
 } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -26,8 +26,8 @@ const NAV_ITEMS = [
   { key: "leads", path: "/leads", icon: Contact },
   { key: "pages", path: "/pages", icon: FileText },
   { key: "partners", path: "/partners", icon: Handshake },
-  { key: "users", path: "/users", icon: Users },
   { key: "auth", path: "/auth", icon: Settings },
+  // { key: "users", path: "/users", icon: Users },
 ];
 
 export function Sidebar({
@@ -64,7 +64,11 @@ export function Sidebar({
           }`}
           aria-label={pinned ? "Collapse sidebar" : "Pin sidebar open"}
         >
-          {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+          {pinned ? (
+            <PinOff className="h-4 w-4" />
+          ) : (
+            <Pin className="h-4 w-4" />
+          )}
         </button>
       </div>
 
