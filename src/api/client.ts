@@ -62,17 +62,53 @@ apiClient.interceptors.response.use(
   },
 );
 
+/** Joins DRF's per-field message array into one readable string. */
+function messageText(value: unknown): string {
+  if (Array.isArray(value)) return value.map(String).join(" ");
+  return String(value);
+}
+
+/**
+ * Flattens a DRF error body into "field: message" lines.
+ *
+ * Handles the three shapes this API actually returns:
+ *   { "slug": ["..."] }                  -> "slug: ..."
+ *   { "title": { "uz": ["..."] } }       -> "title.uz: ..."   (translatable)
+ *   [ "..." ]                            -> "..."             (bare array,
+ *                                           i.e. non_field_errors)
+ *
+ * The field name is always kept: a bare "Обязательное поле." with no field
+ * attached is unactionable for an editor.
+ */
+function flattenApiErrors(data: unknown, prefix = ""): string[] {
+  if (data == null) return [];
+  if (Array.isArray(data)) {
+    const text = messageText(data);
+    return text ? [prefix ? `${prefix}: ${text}` : text] : [];
+  }
+  if (typeof data !== "object") {
+    const text = String(data);
+    return text ? [prefix ? `${prefix}: ${text}` : text] : [];
+  }
+
+  const lines: string[] = [];
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    // non_field_errors carries no useful field name — show the message alone.
+    const isNonField = key === "non_field_errors" || key === "detail";
+    const path = isNonField ? prefix : prefix ? `${prefix}.${key}` : key;
+    lines.push(...flattenApiErrors(value, path));
+  }
+  return lines;
+}
+
 export function getApiErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
     if (typeof data?.detail === "string") return data.detail;
-    if (data && typeof data === "object") {
-      const firstField = Object.values(data).find(
-        (v) => typeof v === "string" || Array.isArray(v),
-      );
-      if (Array.isArray(firstField)) return String(firstField[0]);
-      if (typeof firstField === "string") return firstField;
-    }
+
+    const lines = flattenApiErrors(data);
+    if (lines.length) return lines.join(" · ");
+
     if (error.message) return error.message;
   }
   return "Something went wrong. Please try again.";
@@ -91,8 +127,24 @@ export function applyApiFieldErrors<T extends FieldValues>(
   if (!data || typeof data !== "object") return;
 
   for (const [field, messages] of Object.entries(data)) {
-    if (field === "detail") continue;
-    const message = Array.isArray(messages) ? String(messages[0]) : String(messages);
-    setError(field as Path<T>, { type: "server", message });
+    if (field === "detail" || field === "non_field_errors") continue;
+
+    // Translatable fields report either flattened ("title.uz": [...]) or
+    // nested ({ title: { uz: [...] } }). Both must land on the per-locale
+    // input so the error shows on the right language tab — an error the
+    // editor cannot locate is as bad as no error at all.
+    if (messages && typeof messages === "object" && !Array.isArray(messages)) {
+      for (const [locale, nested] of Object.entries(
+        messages as Record<string, unknown>,
+      )) {
+        setError(`${field}.${locale}` as Path<T>, {
+          type: "server",
+          message: messageText(nested),
+        });
+      }
+      continue;
+    }
+
+    setError(field as Path<T>, { type: "server", message: messageText(messages) });
   }
 }
