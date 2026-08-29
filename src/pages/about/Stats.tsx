@@ -53,11 +53,11 @@ export default function Stats() {
 
   const columns: Column<Stat>[] = [
     {
-      key: "title",
+      key: "label",
       header: t("about.stats.statTitle"),
       render: (s) => (
         <span className="text-slate-900 dark:text-white">
-          {resolve(s.title, locale)}
+          {resolve(s.label, locale)}
         </span>
       ),
     },
@@ -130,7 +130,7 @@ export default function Stats() {
         isLoading={isDeleting}
         title={t("about.stats.confirmDeleteTitle")}
         message={t("about.stats.confirmDeleteMessage", {
-          name: deletingStat ? resolve(deletingStat.title, locale) : "",
+          name: deletingStat ? resolve(deletingStat.label, locale) : "",
         })}
         confirmLabel={t("about.stats.delete")}
         cancelLabel={t("about.stats.cancel")}

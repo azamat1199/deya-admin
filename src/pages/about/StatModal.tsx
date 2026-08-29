@@ -25,14 +25,14 @@ const requiredTranslatable = (message: string) =>
   });
 
 const schema = z.object({
-  title: requiredTranslatable("titleRequired"),
+  label: requiredTranslatable("titleRequired"),
   value: z.string().min(1, "valueRequired"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = {
-  title: { ru: "", uz: "", en: "" },
+  label: { ru: "", uz: "", en: "" },
   value: "",
 };
 
@@ -75,7 +75,7 @@ export function StatModal({
   useEffect(() => {
     if (!isOpen) return;
     if (stat) {
-      reset({ title: toTranslatable(stat.title), value: stat.value });
+      reset({ label: toTranslatable(stat.label), value: stat.value });
     } else {
       reset(emptyValues);
     }
@@ -88,7 +88,7 @@ export function StatModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: buildTranslatable(values.title, stat?.title),
+        label: buildTranslatable(values.label, stat?.label),
         value: values.value,
         is_active: isActive,
       };
@@ -120,12 +120,12 @@ export function StatModal({
       title={t(isEditing ? "about.stats.editStat" : "about.stats.addStat")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["title"]} values={watchedValues} errors={errors}>
+        <TranslatableFields fields={["label"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("about.stats.statTitle")} (${locale.toUpperCase()})`}
-              error={fieldError(errors.title?.[locale]?.message)}
-              {...register(`title.${locale}` as const)}
+              error={fieldError(errors.label?.[locale]?.message)}
+              {...register(`label.${locale}` as const)}
             />
           )}
         </TranslatableFields>

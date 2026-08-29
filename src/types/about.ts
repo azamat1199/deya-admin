@@ -44,22 +44,22 @@ export interface SlidePayload {
 
 export type PatchSlideRequest = Partial<SlidePayload>;
 
-/**
- * Fields unconfirmed — assumed shape (label + number, e.g. "500+ clients").
- * `title` follows the same {uz, ru} JSON convention as Slide; adjust if the
- * real API differs.
- */
+/** A homepage statistic: a number (`value`) with a caption (`label`). */
 export interface Stat {
   id: number;
-  // Response shape unconfirmed — may come back as a plain string instead
-  // of the {uz, ru} object the write payload expects.
-  title: Translatable | string;
+  // `label` is the caption under the number and IS translatable.
+  // `value` is the number itself ("32+", "25") — identical in every
+  // language, so it stays a plain string.
+  label: Translatable | string;
   value: string;
   is_active: boolean;
+  // Read-only — never sent in a write payload.
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface StatPayload {
-  title: Translatable;
+  label: Translatable;
   value: string;
   is_active: boolean;
 }
