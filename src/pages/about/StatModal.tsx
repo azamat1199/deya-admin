@@ -12,6 +12,7 @@ import { aboutApi } from "../../api/about";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import type { Stat } from "../../types/about";
 
 const translatableField = z.object({
@@ -35,6 +36,10 @@ const emptyValues: FormValues = {
   label: { ru: "", uz: "", en: "" },
   value: "",
 };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("about/stats");
 
 export function StatModal({
   isOpen,
@@ -88,7 +93,7 @@ export function StatModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        label: buildTranslatable(values.label, stat?.label),
+        label: buildTranslatable(values.label, stat?.label, locales),
         value: values.value,
         is_active: isActive,
       };
@@ -120,7 +125,7 @@ export function StatModal({
       title={t(isEditing ? "about.stats.editStat" : "about.stats.addStat")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["label"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["label"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("about.stats.statTitle")} (${locale.toUpperCase()})`}

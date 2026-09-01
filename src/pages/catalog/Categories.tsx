@@ -6,6 +6,7 @@ export default function Categories() {
   return (
     <CatalogSimpleSection<Category>
       i18nNamespace="catalog.categories"
+      localeKey="catalog/categories"
       api={{
         list: catalogApi.getCategories,
         create: catalogApi.createCategory,

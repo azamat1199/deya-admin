@@ -15,9 +15,9 @@ import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import {
   buildTranslatable,
   toTranslatable,
-  LOCALES,
   type Translatable,
 } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
 import { slugify } from "../../utils/slugify";
 import type { StaticPagePayload } from "../../types/pages";
@@ -36,6 +36,10 @@ const schema = z.object({
 });
 
 type FormValues = z.infer<typeof schema>;
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("pages/static-pages");
 
 export default function StaticPageEditor() {
   const { t } = useTranslation();
@@ -113,7 +117,7 @@ export default function StaticPageEditor() {
   };
 
   const onSubmit = async (values: FormValues) => {
-    const hasContent = LOCALES.some(
+    const hasContent = locales.some(
       (l) => body[l].replace(/<[^>]*>/g, "").trim().length > 0,
     );
     if (!hasContent) {
@@ -124,9 +128,9 @@ export default function StaticPageEditor() {
     setIsSubmitting(true);
     try {
       const payload: StaticPagePayload = {
-        title: buildTranslatable(values.title, loadedTitle),
+        title: buildTranslatable(values.title, loadedTitle, locales),
         slug: values.slug,
-        body: buildTranslatable(body, loadedBody),
+        body: buildTranslatable(body, loadedBody, locales),
       };
       if (id) {
         await pagesApi.updateStaticPage(Number(id), payload);
@@ -190,6 +194,7 @@ export default function StaticPageEditor() {
           {/* Title and body sit in separate Cards, so each keeps its own
               tab bar rather than moving one across the existing layout. */}
           <TranslatableFields
+            locales={locales}
             fields={["title"]}
             values={watchedValues}
             errors={errors}
@@ -222,6 +227,7 @@ export default function StaticPageEditor() {
 
         <Card className="p-6">
           <TranslatableFields
+            locales={locales}
             fields={["body"]}
             values={{ body }}
             errors={errors}

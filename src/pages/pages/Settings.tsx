@@ -13,6 +13,7 @@ import { pagesApi } from "../../api/pages";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
 import type { SiteSettings, SiteSettingsPayload } from "../../types/pages";
 
@@ -58,6 +59,10 @@ function FieldSkeleton() {
     </div>
   );
 }
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("pages/settings");
 
 export default function Settings() {
   const { t, i18n } = useTranslation();
@@ -131,11 +136,12 @@ export default function Settings() {
     try {
       const payload: SiteSettingsPayload = {
         ...values,
-        address: buildTranslatable(values.address, loaded?.address),
-        work_hours: buildTranslatable(values.work_hours, loaded?.work_hours),
+        address: buildTranslatable(values.address, loaded?.address, locales),
+        work_hours: buildTranslatable(values.work_hours, loaded?.work_hours, locales),
         cookie_notice_text: buildTranslatable(
           values.cookie_notice_text,
           loaded?.cookie_notice_text,
+          locales,
         ),
         catalog_file: catalogFileUrl ?? "",
       };
@@ -225,6 +231,7 @@ export default function Settings() {
           </div>
 
           <TranslatableFields
+            locales={locales}
             fields={["address", "work_hours"]}
             values={watchedValues}
             errors={errors}
@@ -291,6 +298,7 @@ export default function Settings() {
           </h3>
 
           <TranslatableFields
+            locales={locales}
             fields={["cookie_notice_text"]}
             values={watchedValues}
             errors={errors}

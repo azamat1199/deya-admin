@@ -14,6 +14,7 @@ import { blogApi } from "../../api/blog";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
 import type { Post } from "../../types/blog";
 
@@ -50,6 +51,10 @@ function buildEmptyValues(): FormValues {
     published_at: toDatetimeLocalValue(new Date()),
   };
 }
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("blog/posts");
 
 export function PostModal({
   isOpen,
@@ -120,9 +125,9 @@ export function PostModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: buildTranslatable(values.title, post?.title),
+        title: buildTranslatable(values.title, post?.title, locales),
         slug: values.slug,
-        excerpt: buildTranslatable(values.excerpt, post?.excerpt),
+        excerpt: buildTranslatable(values.excerpt, post?.excerpt, locales),
         published_at: new Date(values.published_at).toISOString(),
         is_published: isPublished,
         ...(coverUrl ? { cover: coverUrl } : {}),
@@ -154,6 +159,7 @@ export function PostModal({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <TranslatableFields
+            locales={locales}
           fields={["title", "excerpt"]}
           values={watchedValues}
           errors={errors}

@@ -13,12 +13,17 @@ import type {
   TimelineItem,
   TimelineItemPayload,
   PatchTimelineItemRequest,
+  Factory,
+  FactoryPayload,
+  PatchFactoryRequest,
 } from "../types/about";
 
 const REGIONS_URL = "/api/v1/admin/about/export-regions/";
 const SLIDES_URL = "/api/v1/admin/about/slides/";
 const STATS_URL = "/api/v1/admin/about/stats/";
 const TIMELINE_URL = "/api/v1/admin/about/timeline/";
+// Singleton — retrieve + update only, no id segment. Trailing slash required.
+const FACTORY_URL = "/api/v1/admin/about/factory/";
 
 export const aboutApi = {
   getExportRegions: () => apiClient.get<ExportRegion[]>(REGIONS_URL),
@@ -85,4 +90,14 @@ export const aboutApi = {
 
   deleteTimelineItem: (id: number) =>
     apiClient.delete<void>(`${TIMELINE_URL}${id}/`),
+
+  getFactory: () => apiClient.get<Factory>(FACTORY_URL),
+
+  /** Default write path — sends only what changed. */
+  patchFactory: (data: PatchFactoryRequest) =>
+    apiClient.patch<Factory>(FACTORY_URL, data),
+
+  /** Deliberate full replace only — prefer patchFactory. */
+  updateFactory: (data: FactoryPayload) =>
+    apiClient.put<Factory>(FACTORY_URL, data),
 };

@@ -16,6 +16,7 @@ import { Button } from "../../components/ui/Button";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, resolve, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { useLocale } from "../../hooks/useLocale";
 import { slugify } from "../../utils/slugify";
 import { useCrudList } from "../../hooks/useCrudList";
@@ -72,6 +73,10 @@ function buildEmptyValues(sortOrder: number): FormValues {
     sort_order: String(sortOrder),
   };
 }
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("catalog/products");
 
 export function ProductForm({
   mode,
@@ -227,11 +232,12 @@ export function ProductForm({
         category: Number(values.category),
         family: Number(values.family),
         flavor: Number(values.flavor),
-        name: buildTranslatable(values.name, product?.name),
+        name: buildTranslatable(values.name, product?.name, locales),
         slug: values.slug,
         description: buildTranslatable(
           values.description,
           product?.description,
+          locales,
         ),
         code: values.code,
         box_weight: values.box_weight,
@@ -341,6 +347,7 @@ export function ProductForm({
           </div>
 
           <TranslatableFields
+            locales={locales}
             fields={["name", "description"]}
             values={watchedValues}
             errors={errors}

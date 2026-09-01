@@ -12,6 +12,7 @@ import { FileUpload } from "../../components/FileUpload";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
 import type { CatalogItemBase, CatalogItemPayload } from "../../types/catalog";
 
@@ -53,6 +54,7 @@ export function CatalogItemModal<T extends CatalogItemBase>({
   nextSortOrder,
   onSaved,
   i18nNamespace,
+  localeKey,
   create,
   update,
 }: {
@@ -62,10 +64,13 @@ export function CatalogItemModal<T extends CatalogItemBase>({
   nextSortOrder: number;
   onSaved: (item: T) => void;
   i18nNamespace: string;
+  /** locale-support key for this resource, e.g. "catalog/categories". */
+  localeKey: string;
   create: (payload: CatalogItemPayload) => Promise<{ data: T }>;
   update: (id: number, payload: CatalogItemPayload) => Promise<{ data: T }>;
 }) {
   const { t } = useTranslation();
+  const locales = localesFor(localeKey);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -123,7 +128,7 @@ export function CatalogItemModal<T extends CatalogItemBase>({
     setIsSubmitting(true);
     try {
       const payload: CatalogItemPayload = {
-        name: buildTranslatable(values.name, item?.name),
+        name: buildTranslatable(values.name, item?.name, locales),
         slug: values.slug,
         sort_order: Number(values.sort_order),
         is_active: isActive,
@@ -157,7 +162,12 @@ export function CatalogItemModal<T extends CatalogItemBase>({
       title={t(isEditing ? `${i18nNamespace}.edit` : `${i18nNamespace}.add`)}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+        <TranslatableFields
+          locales={locales}
+          fields={["name"]}
+          values={watchedValues}
+          errors={errors}
+        >
           {(locale) => (
             <Input
               label={`${t(`${i18nNamespace}.name`)} (${locale.toUpperCase()})`}

@@ -1,4 +1,4 @@
-import type { Translatable } from "../api/i18n";
+import type { Translatable, TranslatableInput } from "../api/i18n";
 
 /**
  * Confirmed via Swagger. Full `type` enum unconfirmed beyond "heading" —
@@ -23,7 +23,7 @@ export interface PostBlock {
 export interface PostBlockPayload {
   post: number;
   type: PostBlockType;
-  text: Translatable;
+  text: TranslatableInput;
   image?: string;
   sort_order: number;
 }
@@ -43,9 +43,9 @@ export interface Post {
 }
 
 export interface PostPayload {
-  title: Translatable;
+  title: TranslatableInput;
   slug: string;
-  excerpt: Translatable;
+  excerpt: TranslatableInput;
   cover?: string;
   published_at: string;
   is_published: boolean;

@@ -132,7 +132,8 @@
       "exportRegions": "Eksport hududlari",
       "slides": "Slaydlar",
       "stats": "Statistika",
-      "timeline": "Tarix"
+      "timeline": "Tarix",
+      "factory": "Asoschi tarixi"
     },
     "timeline": {
       "title": "Tarix",
@@ -233,6 +234,25 @@
       "deleteSuccess": "Hudud o'chirildi",
       "nameRequired": "Nomi majburiy",
       "positionRequired": "Pozitsiya majburiy"
+    },
+    "factory": {
+      "title": "Asoschi tarixi",
+      "mainTitle": "Sarlavha",
+      "mainTitleHint": "Asosiy sarlavha, rasm ustida yuqori chap tomonda.",
+      "subtitle": "Qo'shimcha sarlavha",
+      "subtitleHint": "Sarlavha ostidagi paragraf, yuqori chap tomonda. Qalin va kursivni qo'llab-quvvatlaydi.",
+      "description": "Ism",
+      "descriptionHint": "Shaxsning ismi, pastki o'ng tomonda. Oddiy matn.",
+      "subdescription": "Iqtibos",
+      "subdescriptionHint": "Ism ostidagi iqtibos, pastki o'ng tomonda. Qo'shtirnoq ichida kursiv bilan chiqadi.",
+      "image": "Fotosurat",
+      "imageHint": "Blokning to'liq kenglikdagi foni. Tavsiya etilgan o'lcham — kamida 1920×1080 px, aks holda rasm xira ko'rinadi.",
+      "save": "Saqlash",
+      "retry": "Qayta urinish",
+      "lastUpdated": "So'nggi yangilanish: {{date}}",
+      "updateSuccess": "\"Asoschi tarixi\" bloki saqlandi",
+      "loadError": "\"Asoschi tarixi\" blokini yuklab bo'lmadi.",
+      "localeMismatch": "Bu endpoint faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang."
     }
   },
   "careers": {
@@ -574,7 +594,8 @@
     "title": "Sahifalar",
     "tabs": {
       "settings": "Sozlamalar",
-      "staticPages": "Statik sahifalar"
+      "staticPages": "Statik sahifalar",
+      "privacyPolicy": "Maxfiylik siyosati"
     },
     "settings": {
       "title": "Sayt sozlamalari",
@@ -627,6 +648,17 @@
       "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
       "bodyRequired": "Sahifa mazmuni majburiy",
       "unsavedChangesConfirm": "Saqlanmagan o'zgarishlaringiz bor. Saqlamasdan chiqasizmi?"
+    },
+    "privacyPolicy": {
+      "title": "Maxfiylik siyosati",
+      "pageTitle": "Sarlavha",
+      "body": "Hujjat matni",
+      "save": "Saqlash",
+      "retry": "Qayta urinish",
+      "lastUpdated": "So'nggi yangilanish: {{date}}",
+      "updateSuccess": "Maxfiylik siyosati saqlandi",
+      "loadError": "Maxfiylik siyosatini yuklab bo'lmadi.",
+      "localeMismatch": "Bu endpoint faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang."
     }
   },
   "partners": {

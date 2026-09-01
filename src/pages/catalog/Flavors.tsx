@@ -6,6 +6,7 @@ export default function Flavors() {
   return (
     <CatalogSimpleSection<Flavor>
       i18nNamespace="catalog.flavors"
+      localeKey="catalog/flavors"
       api={{
         list: catalogApi.getFlavors,
         create: catalogApi.createFlavor,

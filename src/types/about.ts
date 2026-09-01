@@ -1,4 +1,4 @@
-import type { Translatable } from "../api/i18n";
+import type { Translatable, TranslatableInput } from "../api/i18n";
 
 export interface ExportRegion {
   id: number;
@@ -8,7 +8,7 @@ export interface ExportRegion {
 }
 
 export interface ExportRegionPayload {
-  name: Translatable;
+  name: TranslatableInput;
   position_x: string;
   position_y: string;
 }
@@ -35,8 +35,8 @@ export interface Slide {
 }
 
 export interface SlidePayload {
-  title: Translatable;
-  description: Translatable;
+  title: TranslatableInput;
+  description: TranslatableInput;
   image?: string;
   order: number;
   is_active: boolean;
@@ -59,7 +59,7 @@ export interface Stat {
 }
 
 export interface StatPayload {
-  label: Translatable;
+  label: TranslatableInput;
   value: string;
   is_active: boolean;
 }
@@ -84,9 +84,42 @@ export interface TimelineItem {
 
 export interface TimelineItemPayload {
   year: number;
-  title: Translatable;
-  description: Translatable;
+  title: TranslatableInput;
+  description: TranslatableInput;
   image?: string;
 }
 
 export type PatchTimelineItemRequest = Partial<TimelineItemPayload>;
+
+/**
+ * Singleton FounderStory block on the public /about page.
+ *
+ * Four translatable fields plus ONE shared photo — `image` is a flat string,
+ * not a locale dict, so it belongs outside the RU/UZ/EN tabs.
+ * Timestamps are read-only and never sent back.
+ */
+export interface Factory {
+  title: TranslatableInput;
+  subtitle: TranslatableInput;
+  description: TranslatableInput;
+  subdescription: TranslatableInput;
+  image: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Write shape — omits created_at / updated_at.
+ *
+ * `image` is optional on purpose: omit the key to leave the stored photo
+ * alone, send null to clear it. Never re-send the existing URL unchanged.
+ */
+export interface FactoryPayload {
+  title: TranslatableInput;
+  subtitle: TranslatableInput;
+  description: TranslatableInput;
+  subdescription: TranslatableInput;
+  image?: string | null;
+}
+
+export type PatchFactoryRequest = Partial<FactoryPayload>;

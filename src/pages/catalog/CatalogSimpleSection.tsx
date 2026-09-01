@@ -26,9 +26,11 @@ export interface CatalogItemApi<T extends CatalogItemBase> {
  * is_active shape, so `i18nNamespace` + `api` is all a page needs to say. */
 export function CatalogSimpleSection<T extends CatalogItemBase>({
   i18nNamespace,
+  localeKey,
   api,
 }: {
   i18nNamespace: string;
+  localeKey: string;
   api: CatalogItemApi<T>;
 }) {
   const { t, i18n } = useTranslation();
@@ -174,6 +176,7 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
       />
 
       <CatalogItemModal
+        localeKey={localeKey}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         item={editingItem}

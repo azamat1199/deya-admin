@@ -15,6 +15,7 @@ import { blogApi } from "../../api/blog";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, resolve, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { useLocale } from "../../hooks/useLocale";
 import { POST_BLOCK_TYPES, type Post, type PostBlock, type PostBlockType } from "../../types/blog";
 
@@ -53,6 +54,10 @@ function buildEmptyValues(sortOrder: number): FormValues {
     sort_order: String(sortOrder),
   };
 }
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("blog/post-blocks");
 
 export function PostBlockModal({
   isOpen,
@@ -134,7 +139,7 @@ export function PostBlockModal({
       const payload = {
         post: Number(values.post),
         type: values.type,
-        text: buildTranslatable(values.text, block?.text),
+        text: buildTranslatable(values.text, block?.text, locales),
         sort_order: Number(values.sort_order),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
@@ -213,7 +218,7 @@ export function PostBlockModal({
           error={imageError}
         />
 
-        <TranslatableFields fields={["text"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["text"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Textarea
               label={

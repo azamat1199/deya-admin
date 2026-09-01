@@ -14,6 +14,7 @@ import { catalogApi } from "../../api/catalog";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, resolve, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { useLocale } from "../../hooks/useLocale";
 import type { Product, ProductImage } from "../../types/catalog";
 
@@ -37,6 +38,10 @@ function buildEmptyValues(sortOrder: number): FormValues {
     sort_order: String(sortOrder),
   };
 }
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("catalog/product-images");
 
 export function ProductImageModal({
   isOpen,
@@ -117,7 +122,7 @@ export function ProductImageModal({
       const payload = {
         product: Number(values.product),
         image: imageUrl,
-        alt: buildTranslatable(values.alt, productImage?.alt),
+        alt: buildTranslatable(values.alt, productImage?.alt, locales),
         is_main: isMain,
         sort_order: Number(values.sort_order),
       };
@@ -190,7 +195,7 @@ export function ProductImageModal({
           error={imageError}
         />
 
-        <TranslatableFields fields={["alt"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["alt"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("catalog.productImages.alt")} (${locale.toUpperCase()})`}

@@ -1,4 +1,4 @@
-import type { Translatable } from "../api/i18n";
+import type { Translatable, TranslatableInput } from "../api/i18n";
 
 export interface Certificate {
   id: number;
@@ -10,7 +10,7 @@ export interface Certificate {
 }
 
 export interface CertificatePayload {
-  title: Translatable;
+  title: TranslatableInput;
   image: string;
   file: string;
 }
@@ -27,7 +27,7 @@ export interface Partner {
 }
 
 export interface PartnerPayload {
-  name: Translatable;
+  name: TranslatableInput;
   logo?: string;
   website: string;
 }

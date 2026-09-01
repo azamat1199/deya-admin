@@ -4,4 +4,5 @@ export const ABOUT_SECTIONS = [
   { labelKey: "about.tabs.slides", path: "slides" },
   { labelKey: "about.tabs.stats", path: "stats" },
   { labelKey: "about.tabs.timeline", path: "timeline" },
+  { labelKey: "about.tabs.factory", path: "factory" },
 ];

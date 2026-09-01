@@ -12,7 +12,13 @@ import { Button } from "../../components/ui/Button";
 import { FileUpload } from "../../components/FileUpload";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
-import { LOCALES, type Locale } from "../../api/i18n";
+import {
+  LOCALES,
+  buildTranslatable,
+  toTranslatable,
+  type Locale,
+} from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 
 const DEFAULT_LOCALE: Locale = "ru";
 import type { CareerValue, PatchCareerValueRequest } from "../../types/careers";
@@ -40,22 +46,9 @@ const emptyValues: FormValues = {
   text: { uz: "", ru: "", en: "" },
 };
 
-/** Fills every locale key so each input is always bound to a string. */
-function toFormField(value: CareerValue[keyof CareerValue] | undefined) {
-  const source = (value ?? {}) as Partial<Record<Locale, string>>;
-  return {
-    uz: source.uz ?? "",
-    ru: source.ru ?? "",
-    en: source.en ?? "",
-  };
-}
-
-/** Drops blank locales so we never write empty strings over translations. */
-function toPayloadField(field: Record<Locale, string>) {
-  return Object.fromEntries(
-    LOCALES.map((l) => [l, field[l].trim()]).filter(([, v]) => v !== ""),
-  );
-}
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("careers/career-values");
 
 export function CareerValueModal({
   isOpen,
@@ -93,8 +86,8 @@ export function CareerValueModal({
     if (!isOpen) return;
     if (value) {
       reset({
-        title: toFormField(value.title),
-        text: toFormField(value.text),
+        title: toTranslatable(value.title),
+        text: toTranslatable(value.text),
       });
     } else {
       reset(emptyValues);
@@ -107,9 +100,13 @@ export function CareerValueModal({
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
+      // Always the full { uz, ru, en } key set, like the other forms —
+      // a partial object breaks any serializer that requires an exact
+      // language set. On edit, a blank box keeps the stored translation
+      // rather than blanking it; on create it sends "".
       const payload: PatchCareerValueRequest = {
-        title: toPayloadField(values.title),
-        text: toPayloadField(values.text),
+        title: buildTranslatable(values.title, value?.title, locales),
+        text: buildTranslatable(values.text, value?.text, locales),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
       // PATCH on edit so untouched server-side fields are left alone.
@@ -201,7 +198,7 @@ export function CareerValueModal({
           role="tablist"
           className="flex gap-1 border-b border-slate-200 dark:border-slate-800"
         >
-          {LOCALES.map((loc) => (
+          {locales.map((loc) => (
             <button
               key={loc}
               type="button"
@@ -229,7 +226,7 @@ export function CareerValueModal({
 
         {/* All locales stay mounted so react-hook-form keeps their values and
             validation errors; only the active one is visible. */}
-        {LOCALES.map((loc) => (
+        {locales.map((loc) => (
           <div
             key={loc}
             hidden={loc !== activeLocale}

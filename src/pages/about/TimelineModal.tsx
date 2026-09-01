@@ -13,6 +13,7 @@ import { aboutApi } from "../../api/about";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import type { TimelineItem } from "../../types/about";
 
 const translatableField = z.object({
@@ -38,6 +39,10 @@ const emptyValues: FormValues = {
   title: { ru: "", uz: "", en: "" },
   description: { ru: "", uz: "", en: "" },
 };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("about/timeline");
 
 export function TimelineModal({
   isOpen,
@@ -99,8 +104,8 @@ export function TimelineModal({
     try {
       const payload = {
         year: Number(values.year),
-        title: buildTranslatable(values.title, item?.title),
-        description: buildTranslatable(values.description, item?.description),
+        title: buildTranslatable(values.title, item?.title, locales),
+        description: buildTranslatable(values.description, item?.description, locales),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
       const { data } = item
@@ -144,6 +149,7 @@ export function TimelineModal({
           {...register("year")}
         />
         <TranslatableFields
+            locales={locales}
           fields={["title", "description"]}
           values={watchedValues}
           errors={errors}

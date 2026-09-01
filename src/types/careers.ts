@@ -1,4 +1,4 @@
-import type { Translatable } from "../api/i18n";
+import type { Translatable, TranslatableInput } from "../api/i18n";
 
 /**
  * `title` and `text` are multilingual: the API returns and expects
@@ -16,8 +16,8 @@ export interface CareerValue {
 }
 
 export interface CareerValuePayload {
-  title: Translatable;
-  text: Translatable;
+  title: TranslatableInput;
+  text: TranslatableInput;
   image?: string;
 }
 
@@ -35,9 +35,9 @@ export interface Company {
 }
 
 export interface CompanyPayload {
-  name: Translatable;
+  name: TranslatableInput;
   slug: string;
-  description: Translatable;
+  description: TranslatableInput;
   image?: string;
   vacancies_url: string;
 }

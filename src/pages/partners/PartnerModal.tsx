@@ -12,6 +12,7 @@ import { partnersApi } from "../../api/partners";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import type { Partner } from "../../types/partners";
 
 const translatableField = z
@@ -28,6 +29,10 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = { name: { ru: "", uz: "", en: "" }, website: "" };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("partners/partners");
 
 export function PartnerModal({
   isOpen,
@@ -82,7 +87,7 @@ export function PartnerModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: buildTranslatable(values.name, partner?.name),
+        name: buildTranslatable(values.name, partner?.name, locales),
         website: values.website,
         ...(logoUrl ? { logo: logoUrl } : {}),
       };
@@ -114,7 +119,7 @@ export function PartnerModal({
       title={t(isEditing ? "partners.partners.edit" : "partners.partners.add")}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["name"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("partners.partners.name")} (${locale.toUpperCase()})`}

@@ -10,6 +10,7 @@ import ExportRegions from "./pages/about/ExportRegions";
 import Slides from "./pages/about/Slides";
 import Stats from "./pages/about/Stats";
 import Timeline from "./pages/about/Timeline";
+import Factory from "./pages/about/Factory";
 import BlogLayout from "./pages/blog/BlogLayout";
 import Posts from "./pages/blog/Posts";
 import PostBlocks from "./pages/blog/PostBlocks";
@@ -32,6 +33,7 @@ import PagesLayout from "./pages/pages/PagesLayout";
 import Settings from "./pages/pages/Settings";
 import StaticPages from "./pages/pages/StaticPages";
 import StaticPageEditor from "./pages/pages/StaticPageEditor";
+import PrivacyPolicy from "./pages/pages/PrivacyPolicy";
 import PartnersLayout from "./pages/partners/PartnersLayout";
 import Certificates from "./pages/partners/Certificates";
 import PartnersList from "./pages/partners/PartnersList";
@@ -55,6 +57,7 @@ function App() {
           <Route path="slides" element={<Slides />} />
           <Route path="stats" element={<Stats />} />
           <Route path="timeline" element={<Timeline />} />
+          <Route path="factory" element={<Factory />} />
         </Route>
         <Route path="/blog" element={<BlogLayout />}>
           <Route index element={<Navigate to="posts" replace />} />
@@ -88,6 +91,7 @@ function App() {
           <Route path="static-pages" element={<StaticPages />} />
           <Route path="static-pages/create" element={<StaticPageEditor />} />
           <Route path="static-pages/:id/edit" element={<StaticPageEditor />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
         </Route>
         <Route path="/partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="partners" replace />} />

@@ -11,6 +11,7 @@ import { aboutApi } from "../../api/about";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import type { ExportRegion } from "../../types/about";
 
 const translatableField = z.object({
@@ -34,6 +35,10 @@ const emptyValues: FormValues = {
   position_x: "",
   position_y: "",
 };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("about/export-regions");
 
 export function ExportRegionModal({
   isOpen,
@@ -88,7 +93,7 @@ export function ExportRegionModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: buildTranslatable(values.name, region?.name),
+        name: buildTranslatable(values.name, region?.name, locales),
         position_x: values.position_x,
         position_y: values.position_y,
       };
@@ -128,7 +133,7 @@ export function ExportRegionModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["name"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("about.exportRegions.name")} (${locale.toUpperCase()})`}

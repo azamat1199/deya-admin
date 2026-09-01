@@ -11,6 +11,7 @@ import { catalogApi } from "../../api/catalog";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
 import type { ProductFamily } from "../../types/catalog";
 
@@ -28,6 +29,10 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = { name: { ru: "", uz: "", en: "" }, slug: "" };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("catalog/product-families");
 
 export function ProductFamilyModal({
   isOpen,
@@ -87,7 +92,7 @@ export function ProductFamilyModal({
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const payload = { name: buildTranslatable(values.name, productFamily?.name), slug: values.slug };
+      const payload = { name: buildTranslatable(values.name, productFamily?.name, locales), slug: values.slug };
       const { data } = productFamily
         ? await catalogApi.updateProductFamily(productFamily.id, payload)
         : await catalogApi.createProductFamily(payload);
@@ -124,7 +129,7 @@ export function ProductFamilyModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["name"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["name"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("catalog.productFamilies.name")} (${locale.toUpperCase()})`}

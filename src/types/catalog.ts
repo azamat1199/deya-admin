@@ -1,4 +1,4 @@
-import type { Translatable } from "../api/i18n";
+import type { Translatable, TranslatableInput } from "../api/i18n";
 
 /** Shared shape for simple catalog resources (Categories, Flavors, ...). */
 export interface CatalogItemBase {
@@ -13,7 +13,7 @@ export interface CatalogItemBase {
 }
 
 export interface CatalogItemPayload {
-  name: Translatable;
+  name: TranslatableInput;
   slug: string;
   image?: string;
   sort_order: number;
@@ -37,7 +37,7 @@ export interface ProductFamily {
 }
 
 export interface ProductFamilyPayload {
-  name: Translatable;
+  name: TranslatableInput;
   slug: string;
 }
 
@@ -57,7 +57,7 @@ export interface ProductImage {
 export interface ProductImagePayload {
   product: number;
   image: string;
-  alt: Translatable;
+  alt: TranslatableInput;
   is_main: boolean;
   sort_order: number;
 }
@@ -97,9 +97,9 @@ export interface ProductPayload {
   category: number;
   family: number;
   flavor: number;
-  name: Translatable;
+  name: TranslatableInput;
   slug: string;
-  description: Translatable;
+  description: TranslatableInput;
   code: string;
   box_weight: string;
   shelf_life_months: number;

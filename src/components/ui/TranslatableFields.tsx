@@ -33,6 +33,7 @@ export function TranslatableFields({
   values,
   errors,
   fields,
+  locales = LOCALES,
   children,
 }: {
   /** Current form values, used to flag incomplete locales. */
@@ -41,9 +42,19 @@ export function TranslatableFields({
   errors: ErrorMap;
   /** Which keys in `values`/`errors` are translatable. */
   fields: string[];
+  /**
+   * Locales this endpoint accepts, from localesFor(). Defaults to every
+   * locale. Only these tabs render, and only these are checked for
+   * completeness — a locale the API rejects must not be offered for editing.
+   */
+  locales?: readonly Locale[];
   children: (locale: Locale) => ReactNode;
 }) {
-  const [activeLocale, setActiveLocale] = useState<Locale>(LOCALES[0]);
+  const [activeLocale, setActiveLocale] = useState<Locale>(locales[0]);
+
+  // A narrowed `locales` can drop the tab that is currently open (the map is
+  // read at render, not frozen at mount), which would leave every panel hidden.
+  const currentLocale = locales.includes(activeLocale) ? activeLocale : locales[0];
 
   const hasError = (locale: Locale) =>
     fields.some((f) => Boolean(localeSlot(errors, f, locale)));
@@ -60,15 +71,15 @@ export function TranslatableFields({
         role="tablist"
         className="flex gap-1 border-b border-slate-200 dark:border-slate-800"
       >
-        {LOCALES.map((locale) => (
+        {locales.map((locale) => (
           <button
             key={locale}
             type="button"
             role="tab"
-            aria-selected={activeLocale === locale}
+            aria-selected={currentLocale === locale}
             onClick={() => setActiveLocale(locale)}
             className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
-              activeLocale === locale
+              currentLocale === locale
                 ? "border-slate-900 text-slate-900 dark:border-white dark:text-white"
                 : "border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             }`}
@@ -86,10 +97,10 @@ export function TranslatableFields({
         ))}
       </div>
 
-      {LOCALES.map((locale) => (
+      {locales.map((locale) => (
         <div
           key={locale}
-          hidden={locale !== activeLocale}
+          hidden={locale !== currentLocale}
           className="flex flex-col gap-4"
         >
           {children(locale)}

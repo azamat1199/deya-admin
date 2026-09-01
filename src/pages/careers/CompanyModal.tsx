@@ -13,6 +13,7 @@ import { careersApi } from "../../api/careers";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
 import type { Company } from "../../types/careers";
 
@@ -46,6 +47,10 @@ const emptyValues: FormValues = {
   description: { ru: "", uz: "", en: "" },
   vacancies_url: "",
 };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("careers/companies");
 
 export function CompanyModal({
   isOpen,
@@ -114,9 +119,9 @@ export function CompanyModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        name: buildTranslatable(values.name, company?.name),
+        name: buildTranslatable(values.name, company?.name, locales),
         slug: values.slug,
-        description: buildTranslatable(values.description, company?.description),
+        description: buildTranslatable(values.description, company?.description, locales),
         vacancies_url: withScheme(values.vacancies_url),
         ...(imageUrl ? { image: imageUrl } : {}),
       };
@@ -157,6 +162,7 @@ export function CompanyModal({
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <TranslatableFields
+            locales={locales}
           fields={["name", "description"]}
           values={watchedValues}
           errors={errors}

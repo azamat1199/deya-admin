@@ -12,6 +12,7 @@ import { partnersApi } from "../../api/partners";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
+import { localesFor } from "../../api/locale-support";
 import type { Certificate } from "../../types/partners";
 
 const translatableField = z
@@ -27,6 +28,10 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const emptyValues: FormValues = { title: { ru: "", uz: "", en: "" } };
+
+/** Locales this endpoint accepts. Module scope: a stable reference,
+    so it never becomes a hook dependency. */
+const locales = localesFor("partners/certificates");
 
 export function CertificateModal({
   isOpen,
@@ -99,7 +104,7 @@ export function CertificateModal({
     setIsSubmitting(true);
     try {
       const payload = {
-        title: buildTranslatable(values.title, certificate?.title),
+        title: buildTranslatable(values.title, certificate?.title, locales),
         image: imageUrl as string,
         file: fileUrl as string,
       };
@@ -137,7 +142,7 @@ export function CertificateModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields fields={["title"]} values={watchedValues} errors={errors}>
+        <TranslatableFields locales={locales} fields={["title"]} values={watchedValues} errors={errors}>
           {(locale) => (
             <Input
               label={`${t("partners.certificates.certTitle")} (${locale.toUpperCase()})`}
