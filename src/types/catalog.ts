@@ -1,4 +1,5 @@
 import type { Translatable, TranslatableInput } from "../api/i18n";
+import type { ProductBadge } from "../constants/productBadge";
 
 /** Shared shape for simple catalog resources (Categories, Flavors, ...). */
 export interface CatalogItemBase {
@@ -64,14 +65,6 @@ export interface ProductImagePayload {
 
 export type PatchProductImageRequest = Partial<ProductImagePayload>;
 
-// Guessed from the prompt's one confirmed example ("new") — the backend's
-// Swagger schema was behind auth we couldn't reach to confirm the rest, or
-// whether the field is nullable. Unmapped/unknown badge strings still
-// round-trip fine (Product.badge is a plain string, not this union) —
-// verify against Swagger and adjust once confirmed.
-export type ProductBadge = "new" | "hit" | "sale";
-export const PRODUCT_BADGES: ProductBadge[] = ["new", "hit", "sale"];
-
 export interface Product {
   id: number;
   category: number;
@@ -84,6 +77,8 @@ export interface Product {
   box_weight: string;
   shelf_life_months: number;
   weights: number[];
+  // Tolerant on read: legacy rows may hold null or a value not in the enum.
+  // Normalize with toProductBadge() before putting it in a form.
   badge: string | null;
   is_featured: boolean;
   related_products: number[];
@@ -104,7 +99,8 @@ export interface ProductPayload {
   box_weight: string;
   shelf_life_months: number;
   weights: number[];
-  badge: string | null;
+  /** "" means "no badge" — always present, never null or omitted. */
+  badge: ProductBadge;
   is_featured: boolean;
   related_products: number[];
   sort_order: number;

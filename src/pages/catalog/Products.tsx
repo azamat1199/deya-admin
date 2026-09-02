@@ -8,21 +8,19 @@ import { Switch } from "../../components/ui/Switch";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DataTable, type Column } from "../../components/ui/DataTable";
 import { catalogApi } from "../../api/catalog";
+import {
+  BADGE_CHIP_CLASS,
+  badgeLabelKey,
+} from "../../constants/productBadge";
 import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Product } from "../../types/catalog";
 
-const BADGE_COLORS: Record<string, string> = {
-  new: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
-  hit: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300",
-  sale: "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300",
-};
-
 function badgeChipClass(badge: string) {
   return (
-    BADGE_COLORS[badge] ??
+    BADGE_CHIP_CLASS[badge as keyof typeof BADGE_CHIP_CLASS] ??
     "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
   );
 }
@@ -135,7 +133,7 @@ export default function Products() {
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-medium ${badgeChipClass(p.badge)}`}
           >
-            {t(`catalog.products.badge_${p.badge}`, { defaultValue: p.badge })}
+            {t(badgeLabelKey(p.badge))}
           </span>
         ) : (
           "—"

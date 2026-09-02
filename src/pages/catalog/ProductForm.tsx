@@ -21,7 +21,12 @@ import { useLocale } from "../../hooks/useLocale";
 import { slugify } from "../../utils/slugify";
 import { useCrudList } from "../../hooks/useCrudList";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
-import { PRODUCT_BADGES } from "../../types/catalog";
+import {
+  PRODUCT_BADGES,
+  toProductBadge,
+  NO_BADGE,
+  type ProductBadge,
+} from "../../constants/productBadge";
 import type { Product } from "../../types/catalog";
 
 const translatableField = z.object({
@@ -49,7 +54,10 @@ const schema = z.object({
   shelf_life_months: z.string().regex(/^\d{1,5}$/, "shelfLifeInvalid"),
   // Weight ids (FKs into the Weights resource), not free-typed numbers.
   weights: z.array(z.string()),
-  badge: z.string(),
+  // Plain scalar enum — deliberately NOT translatable.
+  badge: z.enum(
+    PRODUCT_BADGES.map((b) => b.value) as unknown as [ProductBadge, ...ProductBadge[]],
+  ),
   related_products: z.array(z.string()),
   sort_order: z.string().regex(/^\d{1,5}$/, "sortOrderInvalid"),
 });
@@ -68,7 +76,7 @@ function buildEmptyValues(sortOrder: number): FormValues {
     box_weight: "",
     shelf_life_months: "0",
     weights: [],
-    badge: "",
+    badge: NO_BADGE,
     related_products: [],
     sort_order: String(sortOrder),
   };
@@ -144,7 +152,7 @@ export function ProductForm({
       box_weight: product.box_weight,
       shelf_life_months: String(product.shelf_life_months),
       weights: product.weights.map(String),
-      badge: product.badge ?? "",
+      badge: toProductBadge(product.badge),
       related_products: product.related_products.map(String),
       sort_order: String(product.sort_order),
     });
@@ -213,17 +221,11 @@ export function ProductForm({
     [weightsList.items, t],
   );
 
-  const badgeOptions = useMemo(() => {
-    const values = new Set<string>(PRODUCT_BADGES);
-    if (product?.badge) values.add(product.badge);
-    return [
-      { value: "", label: t("catalog.products.badgeNone") },
-      ...Array.from(values).map((value) => ({
-        value,
-        label: t(`catalog.products.badge_${value}`, { defaultValue: value }),
-      })),
-    ];
-  }, [product, t]);
+  const badgeOptions = useMemo(
+    () =>
+      PRODUCT_BADGES.map((b) => ({ value: b.value, label: t(b.labelKey) })),
+    [t],
+  );
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
@@ -243,7 +245,9 @@ export function ProductForm({
         box_weight: values.box_weight,
         shelf_life_months: Number(values.shelf_life_months),
         weights: values.weights.map(Number),
-        badge: values.badge || null,
+        // "" is a real value here ("no badge"); never coerce it to null
+        // and never drop the key.
+        badge: values.badge,
         is_featured: isFeatured,
         related_products: values.related_products.map(Number),
         sort_order: Number(values.sort_order),

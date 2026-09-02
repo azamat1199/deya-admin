@@ -355,8 +355,6 @@
       "badge": "Belgi",
       "badgeNone": "Belgisiz",
       "badge_new": "Yangi",
-      "badge_hit": "Xit",
-      "badge_sale": "Chegirma",
       "relatedProducts": "O'xshash mahsulotlar",
       "selectRelatedProducts": "Mahsulotlarni tanlang",
       "sortOrder": "Saralash tartibi",
@@ -381,7 +379,9 @@
       "nameRequired": "Nomi majburiy",
       "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
       "shelfLifeInvalid": "Yaroqlilik muddati 0 dan 32767 gacha bo'lgan son bo'lishi kerak",
-      "sortOrderInvalid": "Saralash tartibi 0 dan 32767 gacha bo'lgan son bo'lishi kerak"
+      "sortOrderInvalid": "Saralash tartibi 0 dan 32767 gacha bo'lgan son bo'lishi kerak",
+      "badge_discount": "Chegirma",
+      "badge_bestseller": "Xit"
     },
     "categories": {
       "title": "Kategoriyalar",

@@ -355,8 +355,6 @@
       "badge": "Бейдж",
       "badgeNone": "Без бейджа",
       "badge_new": "Новинка",
-      "badge_hit": "Хит",
-      "badge_sale": "Скидка",
       "relatedProducts": "Похожие продукты",
       "selectRelatedProducts": "Выберите продукты",
       "sortOrder": "Порядок сортировки",
@@ -381,7 +379,9 @@
       "nameRequired": "Название обязательно",
       "slugInvalid": "Слаг обязателен и может содержать только латинские буквы, цифры, дефисы и подчёркивания",
       "shelfLifeInvalid": "Срок годности должен быть числом от 0 до 32767",
-      "sortOrderInvalid": "Порядок сортировки должен быть числом от 0 до 32767"
+      "sortOrderInvalid": "Порядок сортировки должен быть числом от 0 до 32767",
+      "badge_discount": "Скидка",
+      "badge_bestseller": "Хит"
     },
     "categories": {
       "title": "Категории",
