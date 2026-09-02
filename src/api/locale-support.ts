@@ -27,6 +27,8 @@ import { LOCALES, type Locale } from "./i18n";
 export const SUPPORTED_LOCALES: Record<string, readonly Locale[]> = {
   // Confirmed by a real 400 on PATCH /api/v1/admin/about/factory/.
   "about/factory": ["ru", "en"],
+  // Confirmed by a real 400 on PUT /api/v1/admin/careers/companies/{id}/.
+  "careers/companies": ["ru", "en"],
   // Confirmed by the same 400 on PATCH /api/v1/admin/catalog/products/{id}/.
   "catalog/products": ["ru", "en"],
   // Confirmed accepting uz — listed explicitly so it reads as measured rather

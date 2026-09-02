@@ -313,7 +313,8 @@
       "deleteSuccess": "Kompaniya o'chirildi",
       "nameRequired": "Nomi majburiy",
       "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
-      "vacanciesUrlRequired": "Vakansiyalar havolasi majburiy"
+      "vacanciesUrlRequired": "Vakansiyalar havolasi majburiy",
+      "localeMismatch": "Bu bo'lim faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang."
     }
   },
   "catalog": {

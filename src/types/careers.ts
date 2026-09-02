@@ -25,7 +25,10 @@ export type PatchCareerValueRequest = Partial<CareerValuePayload>;
 
 export interface Company {
   id: number;
-  name: Translatable | string;
+  // Plain string, NOT translatable: this model mixes field types and only
+  // `description` is a locale dict. Sending an object here returns
+  // {"name": ["Not a valid string."]}.
+  name: string;
   slug: string;
   description: Translatable | string;
   image: string;
@@ -35,10 +38,11 @@ export interface Company {
 }
 
 export interface CompanyPayload {
-  name: TranslatableInput;
+  name: string;
   slug: string;
   description: TranslatableInput;
-  image?: string;
+  /** Omit to leave the stored logo alone; null to remove it. */
+  image?: string | null;
   vacancies_url: string;
 }
 

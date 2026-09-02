@@ -4,31 +4,33 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { AlertCircle } from "lucide-react";
 import { Modal } from "../../components/ui/Modal";
 import { Input } from "../../components/ui/Input";
-import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
+import { RichTextEditor } from "../../components/ui/RichTextEditor";
 import { FileUpload } from "../../components/FileUpload";
 import { careersApi } from "../../api/careers";
 import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
-import { buildTranslatable, toTranslatable } from "../../api/i18n";
-import { localesFor } from "../../api/locale-support";
+import {
+  buildTranslatable,
+  parseAllowedLocales,
+  toTranslatable,
+} from "../../api/i18n";
+import { localesFor, reportLocaleMismatch } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
-import type { Company } from "../../types/careers";
+import type { Company, CompanyPayload } from "../../types/careers";
 
-const translatableField = z
-  .object({ ru: z.string(), uz: z.string(), en: z.string() });
-const requiredTranslatable = (message: string) =>
-  translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
-    message,
-  });
-
-
+/**
+ * This model MIXES field types — only `description` is translatable.
+ * name / slug / image / vacancies_url are plain strings; wrapping `name` in a
+ * locale dict is what produced {"name": ["Not a valid string."]}.
+ */
 const schema = z.object({
-  name: requiredTranslatable("nameRequired"),
+  name: z.string().min(1, "nameRequired"),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
-  description: translatableField,
+  description: z.object({ ru: z.string(), uz: z.string(), en: z.string() }),
   vacancies_url: z.string().min(1, "vacanciesUrlRequired"),
 });
 
@@ -41,16 +43,34 @@ function withScheme(value: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
 }
 
+/**
+ * Existing descriptions are plain text with blank-line paragraph breaks (the
+ * Bonu Shirinliklar card is three paragraphs). TipTap would collapse that into
+ * one paragraph, so promote it to HTML on load. Anything already containing a
+ * tag is left alone.
+ */
+function toEditorHtml(value: string): string {
+  if (!value.trim()) return "";
+  if (/<[a-z][\s\S]*>/i.test(value)) return value;
+  return value
+    .split(/\n{2,}/)
+    .map((p) => `<p>${p.trim().replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
 const emptyValues: FormValues = {
-  name: { ru: "", uz: "", en: "" },
+  name: "",
   slug: "",
   description: { ru: "", uz: "", en: "" },
   vacancies_url: "",
 };
 
+/** This screen's entry in the per-endpoint locale map. */
+const LOCALE_KEY = "careers/companies";
+
 /** Locales this endpoint accepts. Module scope: a stable reference,
     so it never becomes a hook dependency. */
-const locales = localesFor("careers/companies");
+const locales = localesFor(LOCALE_KEY);
 
 export function CompanyModal({
   isOpen,
@@ -67,11 +87,20 @@ export function CompanyModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  // Only send `image` when the user actually changed it: re-sending the stored
+  // URL on every save is what breaks the catalog edit form.
+  const [imageDirty, setImageDirty] = useState(false);
   const isEditing = Boolean(company);
 
   // Tracks whether the user has hand-edited the slug field; once true, the
   // name→slug auto-sync stops so we don't clobber a manual edit.
   const [slugEdited, setSlugEdited] = useState(false);
+
+  // Set when the API refuses our locale key set.
+  const [localeRefusal, setLocaleRefusal] = useState<{
+    accepted: string[];
+    serverMessage: string;
+  } | null>(null);
 
   const {
     register,
@@ -90,17 +119,23 @@ export function CompanyModal({
   // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
 
-   
+
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
     if (!isOpen) return;
     if (company) {
+      const stored = toTranslatable(company.description);
       reset({
-        name: toTranslatable(company.name),
+        // Already a plain string on the wire — no toTranslatable here.
+        name: company.name,
         slug: company.slug,
-        description: toTranslatable(company.description),
+        description: {
+          ru: toEditorHtml(stored.ru),
+          uz: toEditorHtml(stored.uz),
+          en: toEditorHtml(stored.en),
+        },
         vacancies_url: company.vacancies_url,
       });
       // Editing an existing company: its slug is already established, so
@@ -111,22 +146,51 @@ export function CompanyModal({
       setSlugEdited(false);
     }
     setImageUrl(company?.image ?? null);
+    setImageDirty(false);
+    setLocaleRefusal(null);
   }, [isOpen, company, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
-   
+
+
+  /** Recovers the accepted locale list from an exact-key-set refusal. */
+  const checkLocaleRefusal = (error: unknown) => {
+    const data = (
+      error as { response?: { data?: Record<string, unknown> } } | undefined
+    )?.response?.data;
+    if (!data || typeof data !== "object") return;
+    for (const value of Object.values(data)) {
+      const message = Array.isArray(value) ? String(value[0]) : String(value);
+      const accepted = parseAllowedLocales(message);
+      if (accepted) {
+        setLocaleRefusal({ accepted, serverMessage: message });
+        // Names the map entry to correct, so a backend locale change is a
+        // one-line fix in locale-support.ts instead of a hunt.
+        reportLocaleMismatch(LOCALE_KEY, accepted);
+        return;
+      }
+    }
+  };
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
+    setLocaleRefusal(null);
     try {
-      const payload = {
-        name: buildTranslatable(values.name, company?.name, locales),
+      const payload: CompanyPayload = {
+        name: values.name.trim(),
         slug: values.slug,
-        description: buildTranslatable(values.description, company?.description, locales),
+        description: buildTranslatable(
+          values.description,
+          company?.description,
+          locales,
+        ),
         vacancies_url: withScheme(values.vacancies_url),
-        ...(imageUrl ? { image: imageUrl } : {}),
+        // Omit when untouched, explicit null when removed.
+        ...(imageDirty ? { image: imageUrl } : {}),
       };
+      // PATCH for edits: PUT demands the complete object, which is why partial
+      // edits fail elsewhere in this admin.
       const { data } = company
-        ? await careersApi.updateCompany(company.id, payload)
+        ? await careersApi.patchCompany(company.id, payload)
         : await careersApi.createCompany(payload);
       toast.success(
         t(
@@ -138,6 +202,7 @@ export function CompanyModal({
       onSaved(data);
       onClose();
     } catch (error) {
+      checkLocaleRefusal(error);
       applyApiFieldErrors<FormValues>(error, setError);
       toast.error(getApiErrorMessage(error));
     } finally {
@@ -161,35 +226,39 @@ export function CompanyModal({
       )}
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields
-            locales={locales}
-          fields={["name", "description"]}
-          values={watchedValues}
-          errors={errors}
-        >
-          {(locale) => (
-            <>
-              <Input
-                label={`${t("careers.companies.name")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.name?.[locale]?.message)}
-                {...register(`name.${locale}` as const, {
-                  onChange: (e) => {
-                    if (!slugEdited && locale === "ru") {
-                      setValue("slug", slugify(e.target.value), {
-                        shouldValidate: true,
-                      });
-                    }
-                  },
+        {localeRefusal && (
+          <div className="flex items-start gap-3 rounded-md border border-amber-300 p-3 dark:border-amber-800">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <div className="flex flex-col gap-1">
+              <p className="text-sm text-slate-700 dark:text-slate-300">
+                {t("careers.companies.localeMismatch", {
+                  locales: localeRefusal.accepted
+                    .map((l) => l.toUpperCase())
+                    .join(", "),
                 })}
-              />
-              <Textarea
-                label={`${t("careers.companies.description")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.description?.[locale]?.message)}
-                {...register(`description.${locale}` as const)}
-              />
-            </>
-          )}
-        </TranslatableFields>
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {localeRefusal.serverMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Plain fields live ABOVE the tabs — they are the same in every
+            language, and `name` in particular must be sent as a string. */}
+        <Input
+          label={t("careers.companies.name")}
+          error={fieldError(errors.name?.message)}
+          {...register("name", {
+            onChange: (e) => {
+              if (!slugEdited) {
+                setValue("slug", slugify(e.target.value), {
+                  shouldValidate: true,
+                });
+              }
+            },
+          })}
+        />
 
         <Input
           label={t("careers.companies.slug")}
@@ -202,7 +271,10 @@ export function CompanyModal({
         <FileUpload
           label={`${t("careers.companies.logo")} (${t("careers.companies.optional")})`}
           value={imageUrl}
-          onChange={setImageUrl}
+          onChange={(url) => {
+            setImageUrl(url);
+            setImageDirty(true);
+          }}
           onUploadingChange={setIsUploadingImage}
         />
 
@@ -212,6 +284,27 @@ export function CompanyModal({
           error={fieldError(errors.vacancies_url?.message)}
           {...register("vacancies_url")}
         />
+
+        {/* Only `description` is translatable. */}
+        <TranslatableFields
+          locales={locales}
+          fields={["description"]}
+          values={watchedValues}
+          errors={errors}
+        >
+          {(locale) => (
+            <RichTextEditor
+              label={`${t("careers.companies.description")} (${locale.toUpperCase()})`}
+              value={watchedValues.description?.[locale] ?? ""}
+              onChange={(html) =>
+                setValue(`description.${locale}` as const, html, {
+                  shouldDirty: true,
+                })
+              }
+              error={fieldError(errors.description?.[locale]?.message)}
+            />
+          )}
+        </TranslatableFields>
 
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

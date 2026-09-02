@@ -8,14 +8,11 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { CompanyModal } from "./CompanyModal";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
-import { resolve } from "../../api/i18n";
-import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { Company } from "../../types/careers";
 
 export default function Companies() {
   const { t, i18n } = useTranslation();
-  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     careersApi.getCompanies,
   );
@@ -48,7 +45,7 @@ export default function Companies() {
         c.image ? (
           <img
             src={c.image}
-            alt={resolve(c.name, locale)}
+            alt={c.name}
             className="h-10 w-16 rounded object-cover"
           />
         ) : (
@@ -61,7 +58,7 @@ export default function Companies() {
       key: "name",
       header: t("careers.companies.name"),
       render: (c) => (
-        <span className="text-slate-900 dark:text-white">{resolve(c.name, locale)}</span>
+        <span className="text-slate-900 dark:text-white">{c.name}</span>
       ),
     },
     {
@@ -82,7 +79,7 @@ export default function Companies() {
             href={c.vacancies_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex max-w-[12rem] items-center gap-1 truncate text-slate-600 underline hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+            className="inline-flex max-w-48 items-center gap-1 truncate text-slate-600 underline hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
           >
             <ExternalLink className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{c.vacancies_url}</span>
@@ -147,7 +144,7 @@ export default function Companies() {
         isLoading={isDeleting}
         title={t("careers.companies.confirmDeleteTitle")}
         message={t("careers.companies.confirmDeleteMessage", {
-          name: resolve(deletingCompany?.name, locale),
+          name: deletingCompany?.name ?? "",
         })}
         confirmLabel={t("careers.companies.delete")}
         cancelLabel={t("careers.companies.cancel")}
