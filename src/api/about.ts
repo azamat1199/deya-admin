@@ -16,6 +16,9 @@ import type {
   Factory,
   FactoryPayload,
   PatchFactoryRequest,
+  ProductInfo,
+  ProductInfoPayload,
+  PatchProductInfoRequest,
 } from "../types/about";
 
 const REGIONS_URL = "/api/v1/admin/about/export-regions/";
@@ -24,6 +27,7 @@ const STATS_URL = "/api/v1/admin/about/stats/";
 const TIMELINE_URL = "/api/v1/admin/about/timeline/";
 // Singleton — retrieve + update only, no id segment. Trailing slash required.
 const FACTORY_URL = "/api/v1/admin/about/factory/";
+const PRODUCT_INFO_URL = "/api/v1/admin/about/product-info/";
 
 export const aboutApi = {
   getExportRegions: () => apiClient.get<ExportRegion[]>(REGIONS_URL),
@@ -100,4 +104,22 @@ export const aboutApi = {
   /** Deliberate full replace only — prefer patchFactory. */
   updateFactory: (data: FactoryPayload) =>
     apiClient.put<Factory>(FACTORY_URL, data),
+
+  getProductInfos: () => apiClient.get<ProductInfo[]>(PRODUCT_INFO_URL),
+
+  getProductInfo: (id: number) =>
+    apiClient.get<ProductInfo>(`${PRODUCT_INFO_URL}${id}/`),
+
+  createProductInfo: (data: ProductInfoPayload) =>
+    apiClient.post<ProductInfo>(PRODUCT_INFO_URL, data),
+
+  /** Deliberate full replace only — the edit form uses patchProductInfo. */
+  updateProductInfo: (id: number, data: ProductInfoPayload) =>
+    apiClient.put<ProductInfo>(`${PRODUCT_INFO_URL}${id}/`, data),
+
+  patchProductInfo: (id: number, data: PatchProductInfoRequest) =>
+    apiClient.patch<ProductInfo>(`${PRODUCT_INFO_URL}${id}/`, data),
+
+  deleteProductInfo: (id: number) =>
+    apiClient.delete<void>(`${PRODUCT_INFO_URL}${id}/`),
 };

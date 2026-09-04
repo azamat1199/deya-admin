@@ -5,16 +5,18 @@ import type {
   StaticPage,
   StaticPagePayload,
   PatchStaticPageRequest,
-  PrivacyPolicy,
-  PrivacyPolicyPayload,
-  PatchPrivacyPolicyRequest,
+  PrivacyPolicyPage,
+  PatchPrivacyPolicyPageRequest,
 } from "../types/pages";
 
 // Singleton resource — no id in the path, no list/create/delete.
 const SETTINGS_URL = "/api/v1/admin/pages/settings/";
 const STATIC_PAGES_URL = "/api/v1/admin/pages/static-pages/";
-// Singleton too — retrieve + update only, no id segment. Trailing slash
-// is required (Django APPEND_SLASH 301s the slashless form).
+// A collection keyed by slug per the schema (GET/POST on the list,
+// GET/PUT/PATCH/DELETE on /{slug}/), but the SITE only ever has exactly two
+// legal documents. create/delete are deliberately not exposed here — a
+// create flow is what produced the stray "" and "body" records that had to
+// be filtered out of the list; this module only reads and edits.
 const PRIVACY_POLICY_URL = "/api/v1/admin/pages/privacy-policy/";
 
 export const pagesApi = {
@@ -40,13 +42,24 @@ export const pagesApi = {
   deleteStaticPage: (id: number) =>
     apiClient.delete<void>(`${STATIC_PAGES_URL}${id}/`),
 
-  getPrivacyPolicy: () => apiClient.get<PrivacyPolicy>(PRIVACY_POLICY_URL),
+  getPrivacyPolicyPages: () =>
+    apiClient.get<PrivacyPolicyPage[]>(PRIVACY_POLICY_URL),
 
-  /** Default write path: sends only what changed. */
-  patchPrivacyPolicy: (data: PatchPrivacyPolicyRequest) =>
-    apiClient.patch<PrivacyPolicy>(PRIVACY_POLICY_URL, data),
+  getPrivacyPolicyPage: (slug: string) =>
+    apiClient.get<PrivacyPolicyPage>(
+      `${PRIVACY_POLICY_URL}${encodeURIComponent(slug)}/`,
+    ),
 
-  /** Deliberate full replace only — prefer patchPrivacyPolicy. */
-  updatePrivacyPolicy: (data: PrivacyPolicyPayload) =>
-    apiClient.put<PrivacyPolicy>(PRIVACY_POLICY_URL, data),
+  /**
+   * The only write path this module exposes. PUT and POST/DELETE exist on
+   * the schema too, but are deliberately not called here: PUT risks a caller
+   * accidentally including (and thus changing) the slug, which this screen
+   * never offers, and POST/DELETE would let someone create or remove one of
+   * the site's two fixed legal documents.
+   */
+  patchPrivacyPolicyPage: (slug: string, data: PatchPrivacyPolicyPageRequest) =>
+    apiClient.patch<PrivacyPolicyPage>(
+      `${PRIVACY_POLICY_URL}${encodeURIComponent(slug)}/`,
+      data,
+    ),
 };

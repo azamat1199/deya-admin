@@ -2,4 +2,5 @@
 export const CAREERS_SECTIONS = [
   { labelKey: "careers.tabs.careerValues", path: "career-values" },
   { labelKey: "careers.tabs.companies", path: "companies" },
+  { labelKey: "careers.tabs.productInfo", path: "product-info" },
 ];

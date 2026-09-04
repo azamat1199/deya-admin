@@ -123,3 +123,31 @@ export interface FactoryPayload {
 }
 
 export type PatchFactoryRequest = Partial<FactoryPayload>;
+
+/**
+ * A "how we work" card on the public /about page. Confirmed via a live GET
+ * (the public mirror at /api/v1/product-info/): the resource has exactly
+ * these four fields — no created_at/updated_at, no sort_order.
+ */
+export interface ProductInfo {
+  id: number;
+  title: TranslatableInput;
+  description: TranslatableInput;
+  image: string;
+}
+
+/** Create payload. `image` is required by the schema. */
+export interface ProductInfoPayload {
+  title: TranslatableInput;
+  description: TranslatableInput;
+  image: string;
+}
+
+/**
+ * Edit payload. `image` is optional here on purpose: omit it to leave the
+ * stored image untouched, or send an explicit null to remove it. Never
+ * re-send the loaded display URL unconditionally — the CompanyModal bug.
+ */
+export type PatchProductInfoRequest = Partial<Omit<ProductInfoPayload, "image">> & {
+  image?: string | null;
+};

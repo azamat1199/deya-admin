@@ -9,10 +9,20 @@ import { CompanyModal } from "./CompanyModal";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
+import { resolve } from "../../api/i18n";
+import { useLocale } from "../../hooks/useLocale";
 import type { Company } from "../../types/careers";
 
+/** description is TipTap HTML now, not plain text — a table cell renders
+ * this as JSX text, so without stripping tags the row would show literal
+ * "<p>...</p>" characters instead of a plain preview. */
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export default function Companies() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const locale = useLocale();
   const { items, isLoading, hasError, upsert, remove } = useCrudList(
     careersApi.getCompanies,
   );
@@ -71,6 +81,15 @@ export default function Companies() {
       ),
     },
     {
+      key: "description",
+      header: t("careers.companies.description"),
+      render: (c) => (
+        <span className="line-clamp-1 max-w-xs">
+          {stripHtml(resolve(c.description, locale))}
+        </span>
+      ),
+    },
+    {
       key: "vacancies_url",
       header: t("careers.companies.vacanciesUrl"),
       render: (c) =>
@@ -87,14 +106,6 @@ export default function Companies() {
         ) : (
           "—"
         ),
-    },
-    {
-      key: "created_at",
-      header: t("careers.companies.createdAt"),
-      render: (c) =>
-        c.created_at
-          ? new Date(c.created_at).toLocaleDateString(i18n.language)
-          : "—",
     },
   ];
 

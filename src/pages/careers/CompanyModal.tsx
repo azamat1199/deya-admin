@@ -20,7 +20,11 @@ import {
 } from "../../api/i18n";
 import { localesFor, reportLocaleMismatch } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
-import type { Company, CompanyPayload } from "../../types/careers";
+import type {
+  Company,
+  CompanyPayload,
+  PatchCompanyRequest,
+} from "../../types/careers";
 
 /**
  * This model MIXES field types — only `description` is translatable.
@@ -90,6 +94,7 @@ export function CompanyModal({
   // Only send `image` when the user actually changed it: re-sending the stored
   // URL on every save is what breaks the catalog edit form.
   const [imageDirty, setImageDirty] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const isEditing = Boolean(company);
 
   // Tracks whether the user has hand-edited the slug field; once true, the
@@ -147,6 +152,7 @@ export function CompanyModal({
     }
     setImageUrl(company?.image ?? null);
     setImageDirty(false);
+    setImageError(null);
     setLocaleRefusal(null);
   }, [isOpen, company, reset]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -172,26 +178,39 @@ export function CompanyModal({
   };
 
   const onSubmit = async (values: FormValues) => {
+    // Required by the schema on create; on edit an untouched image is simply
+    // not re-validated here (the stored one stands).
+    if (!isEditing && !imageUrl) {
+      setImageError(t("careers.companies.imageRequired"));
+      return;
+    }
+    setImageError(null);
     setIsSubmitting(true);
     setLocaleRefusal(null);
     try {
-      const payload: CompanyPayload = {
-        name: values.name.trim(),
-        slug: values.slug,
-        description: buildTranslatable(
-          values.description,
-          company?.description,
-          locales,
-        ),
-        vacancies_url: withScheme(values.vacancies_url),
-        // Omit when untouched, explicit null when removed.
-        ...(imageDirty ? { image: imageUrl } : {}),
-      };
+      const description = buildTranslatable(
+        values.description,
+        company?.description,
+        locales,
+      );
       // PATCH for edits: PUT demands the complete object, which is why partial
       // edits fail elsewhere in this admin.
       const { data } = company
-        ? await careersApi.patchCompany(company.id, payload)
-        : await careersApi.createCompany(payload);
+        ? await careersApi.patchCompany(company.id, {
+            name: values.name.trim(),
+            slug: values.slug,
+            description,
+            vacancies_url: withScheme(values.vacancies_url),
+            // Omit when untouched, explicit null when removed.
+            ...(imageDirty ? { image: imageUrl } : {}),
+          } satisfies PatchCompanyRequest)
+        : await careersApi.createCompany({
+            name: values.name.trim(),
+            slug: values.slug,
+            description,
+            vacancies_url: withScheme(values.vacancies_url),
+            image: imageUrl as string,
+          } satisfies CompanyPayload);
       toast.success(
         t(
           company
@@ -269,13 +288,15 @@ export function CompanyModal({
         />
 
         <FileUpload
-          label={`${t("careers.companies.logo")} (${t("careers.companies.optional")})`}
+          label={t("careers.companies.logo")}
           value={imageUrl}
           onChange={(url) => {
             setImageUrl(url);
             setImageDirty(true);
+            if (imageError) setImageError(null);
           }}
           onUploadingChange={setIsUploadingImage}
+          error={imageError}
         />
 
         <Input

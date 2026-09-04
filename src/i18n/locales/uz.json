@@ -259,7 +259,8 @@
     "title": "Karyera",
     "tabs": {
       "careerValues": "Qadriyatlar",
-      "companies": "Kompaniyalar"
+      "companies": "Kompaniyalar",
+      "productInfo": "Afzalliklar"
     },
     "careerValues": {
       "title": "Qadriyatlar",
@@ -314,7 +315,30 @@
       "nameRequired": "Nomi majburiy",
       "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
       "vacanciesUrlRequired": "Vakansiyalar havolasi majburiy",
-      "localeMismatch": "Bu bo'lim faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang."
+      "localeMismatch": "Bu bo'lim faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang.",
+      "imageRequired": "Rasm majburiy"
+    },
+    "productInfo": {
+      "title": "Afzalliklar",
+      "addItem": "Karta qo'shish",
+      "editItem": "Kartani tahrirlash",
+      "itemTitle": "Sarlavha",
+      "description": "Tavsif",
+      "image": "Rasm",
+      "imageRequired": "Rasm majburiy",
+      "actions": "Amallar",
+      "empty": "Hozircha kartalar yo'q.",
+      "loadError": "Kartalar ro'yxatini yuklab bo'lmadi.",
+      "confirmDeleteTitle": "Kartani o'chirish",
+      "confirmDeleteMessage": "\"{{name}}\" kartasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.",
+      "delete": "O'chirish",
+      "cancel": "Bekor qilish",
+      "save": "Saqlash",
+      "create": "Yaratish",
+      "createSuccess": "Karta muvaffaqiyatli yaratildi",
+      "updateSuccess": "Karta muvaffaqiyatli yangilandi",
+      "deleteSuccess": "Karta o'chirildi",
+      "titleRequired": "Sarlavha majburiy"
     }
   },
   "catalog": {
@@ -657,9 +681,29 @@
       "save": "Saqlash",
       "retry": "Qayta urinish",
       "lastUpdated": "So'nggi yangilanish: {{date}}",
-      "updateSuccess": "Maxfiylik siyosati saqlandi",
+      "updateSuccess": "Hujjat saqlandi",
       "loadError": "Maxfiylik siyosatini yuklab bo'lmadi.",
-      "localeMismatch": "Bu endpoint faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang."
+      "localeMismatch": "Bu endpoint faqat quyidagi tillarni qabul qiladi: {{locales}}. Faqat shu tablarni to'ldiring va saqlang.",
+      "addPage": "Hujjat qo'shish",
+      "editPage": "Hujjatni tahrirlash",
+      "slug": "Slug",
+      "updatedAt": "Yangilangan",
+      "actions": "Amallar",
+      "empty": "Hozircha hujjatlar yo'q.",
+      "confirmDeleteTitle": "Hujjatni o'chirish",
+      "confirmDeleteMessage": "\"{{name}}\" hujjatini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.",
+      "delete": "O'chirish",
+      "cancel": "Bekor qilish",
+      "create": "Yaratish",
+      "createSuccess": "Hujjat muvaffaqiyatli yaratildi",
+      "deleteSuccess": "Hujjat o'chirildi",
+      "titleRequired": "Sarlavha majburiy",
+      "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
+      "bodyRequired": "Hujjat matni majburiy",
+      "unsavedChangesConfirm": "Saqlanmagan o'zgarishlar bor. Saqlamasdan chiqasizmi?",
+      "emptySlug": "Slug bo'sh",
+      "emptySlugHint": "Bu yozuvning slugi bo'sh — shu sababli API manzili noto'g'ri bo'ladi. Backend slugni tuzatmaguncha tahrirlash va o'chirish mumkin emas.",
+      "slugLocked": "Slug yaratilgandan keyin o'zgartirilmaydi — saqlash shu manzil bo'yicha amalga oshiriladi."
     }
   },
   "partners": {
@@ -690,7 +734,8 @@
       "updateSuccess": "Hamkor muvaffaqiyatli yangilandi",
       "deleteSuccess": "Hamkor o'chirildi",
       "nameRequired": "Nomi majburiy",
-      "websiteInvalid": "To'g'ri havola kiriting"
+      "websiteInvalid": "To'g'ri havola kiriting",
+      "logoRequired": "Logotip majburiy"
     },
     "certificates": {
       "title": "Sertifikatlar",

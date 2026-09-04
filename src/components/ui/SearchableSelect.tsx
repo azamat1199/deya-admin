@@ -96,7 +96,13 @@ export function SearchableSelect({
           disabled={isDisabled}
           onClick={() => (isOpen ? setIsOpen(false) : openDropdown())}
           onKeyDown={(e) => {
-            if (e.key === "Escape") setIsOpen(false);
+            // Stops here so the dropdown closes without the Escape also
+            // reaching Modal's document-level listener and closing the
+            // whole modal in the same keystroke.
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              setIsOpen(false);
+            }
           }}
           className={`flex w-full items-center justify-between gap-2 rounded-md border bg-white px-3 py-2 text-left text-sm text-slate-900 shadow-sm outline-none transition-colors focus:ring-2 focus:ring-slate-900/10 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-900 dark:text-white dark:focus:ring-white/10 ${
             error

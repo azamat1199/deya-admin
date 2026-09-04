@@ -21,8 +21,22 @@ The request body was:
 { "title": { "uz": "...", "ru": "...", "en": "..." }, ... }
 ```
 
-The only offending key is `uz`. The same message appears on
-`catalog/products`. `catalog/categories` accepts `uz` and saves it correctly.
+The only offending key is `uz`. `catalog/categories` accepts `uz` and saves
+it correctly.
+
+**Update:** the same message used to appear on `catalog/products` — with the
+opposite meaning. `POST /api/v1/admin/catalog/products/` now returns
+`"This field must contain exactly these languages: uz, ru, en."` when sent
+only `{ru, en}`. The backend has switched `products` from rejecting `uz` to
+requiring it — the ticket below is resolved for this endpoint. The
+`catalog/products` entry has been removed from `SUPPORTED_LOCALES`
+accordingly; it now sends the full set like everything else unlisted.
+
+**Update 2:** the same flip happened on `careers/companies`. It was
+restricted to `{ru, en}`; a later request body spec for that endpoint showed
+`description` sent as `{uz, ru, en}` with the same "must contain exactly
+these languages: uz, ru, en" wording. Its entry has also been removed from
+`SUPPORTED_LOCALES`.
 
 ## Why this is a backend bug, not a frontend one
 

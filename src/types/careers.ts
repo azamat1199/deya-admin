@@ -23,6 +23,10 @@ export interface CareerValuePayload {
 
 export type PatchCareerValueRequest = Partial<CareerValuePayload>;
 
+// Confirmed via a live GET (/api/v1/companies/, the public mirror): the
+// resource returns exactly {id, name, slug, description, image,
+// vacancies_url} — no created_at/updated_at. The schema agrees
+// (CompanyAdminRequest/Company have no timestamp fields).
 export interface Company {
   id: number;
   // Plain string, NOT translatable: this model mixes field types and only
@@ -33,17 +37,23 @@ export interface Company {
   description: Translatable | string;
   image: string;
   vacancies_url: string;
-  created_at: string;
-  updated_at: string;
 }
 
+/** Create payload. `image` is required by the schema — a company cannot be
+ * created without one. */
 export interface CompanyPayload {
   name: string;
   slug: string;
   description: TranslatableInput;
-  /** Omit to leave the stored logo alone; null to remove it. */
-  image?: string | null;
+  image: string;
   vacancies_url: string;
 }
 
-export type PatchCompanyRequest = Partial<CompanyPayload>;
+/**
+ * Edit payload. `image` is optional here on purpose: omit it to leave the
+ * stored image untouched, or send an explicit null to remove it. Never
+ * re-send the loaded display URL unconditionally.
+ */
+export type PatchCompanyRequest = Partial<Omit<CompanyPayload, "image">> & {
+  image?: string | null;
+};

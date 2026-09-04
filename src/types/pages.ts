@@ -47,21 +47,31 @@ export interface StaticPagePayload {
 export type PatchStaticPageRequest = Partial<StaticPagePayload>;
 
 /**
- * Singleton privacy-policy document. `title` is a plain string per locale;
- * `body` is rich-text HTML per locale (numbered sections, bold headings,
- * lists and links). Timestamps are read-only and never sent back.
+ * A legal document in the privacy-policy collection — keyed by SLUG, not id
+ * (the resource has no id field). NOT a singleton: GET on the collection URL
+ * returns an array. `title` and `body` are both translatable; `body` is
+ * TipTap-authored HTML per locale. Timestamps are read-only.
+ *
+ * Live data currently holds two records: slug "" (real content, but an empty
+ * slug makes its detail URL `.../privacy-policy//` — unroutable) and slug
+ * "body" (junk). Neither matches the public routes /privacy-policy or
+ * /personal-data-consent yet — filed with the backend.
  */
-export interface PrivacyPolicy {
+export interface PrivacyPolicyPage {
+  slug: string;
   title: TranslatableInput;
   body: TranslatableInput;
   created_at: string;
   updated_at: string;
 }
 
-/** Write shape — deliberately omits created_at / updated_at. */
-export interface PrivacyPolicyPayload {
+/**
+ * Edit payload — PATCHed to /{slug}/. `slug` is deliberately absent: the
+ * path already carries identity, so allowing it in the body would open a
+ * silent-rename path that could break whatever public route points at the
+ * old slug. This resource offers no rename.
+ */
+export type PatchPrivacyPolicyPageRequest = Partial<{
   title: TranslatableInput;
   body: TranslatableInput;
-}
-
-export type PatchPrivacyPolicyRequest = Partial<PrivacyPolicyPayload>;
+}>;

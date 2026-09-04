@@ -17,6 +17,7 @@ import PostBlocks from "./pages/blog/PostBlocks";
 import CareersLayout from "./pages/careers/CareersLayout";
 import CareerValues from "./pages/careers/CareerValues";
 import Companies from "./pages/careers/Companies";
+import ProductInfo from "./pages/careers/ProductInfo";
 import CatalogLayout from "./pages/catalog/CatalogLayout";
 import Categories from "./pages/catalog/Categories";
 import Flavors from "./pages/catalog/Flavors";
@@ -34,6 +35,7 @@ import Settings from "./pages/pages/Settings";
 import StaticPages from "./pages/pages/StaticPages";
 import StaticPageEditor from "./pages/pages/StaticPageEditor";
 import PrivacyPolicy from "./pages/pages/PrivacyPolicy";
+import PrivacyPolicyPageEditor from "./pages/pages/PrivacyPolicyPageEditor";
 import PartnersLayout from "./pages/partners/PartnersLayout";
 import Certificates from "./pages/partners/Certificates";
 import PartnersList from "./pages/partners/PartnersList";
@@ -68,6 +70,7 @@ function App() {
           <Route index element={<Navigate to="career-values" replace />} />
           <Route path="career-values" element={<CareerValues />} />
           <Route path="companies" element={<Companies />} />
+          <Route path="product-info" element={<ProductInfo />} />
         </Route>
         <Route path="/catalog" element={<CatalogLayout />}>
           <Route index element={<Navigate to="products" replace />} />
@@ -92,6 +95,7 @@ function App() {
           <Route path="static-pages/create" element={<StaticPageEditor />} />
           <Route path="static-pages/:id/edit" element={<StaticPageEditor />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="privacy-policy/:slug/edit" element={<PrivacyPolicyPageEditor />} />
         </Route>
         <Route path="/partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="partners" replace />} />

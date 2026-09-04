@@ -1,4 +1,13 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+
+/**
+ * Currently-open modals, in the order they opened. A native listener is
+ * attached per instance (see below) rather than one global listener, but
+ * only the ID at the END of this stack — the topmost, most-recently-opened
+ * modal — is allowed to act on Escape. This is what makes a stacked
+ * ConfirmDialog (itself built on Modal) close before the modal underneath it.
+ */
+const openModalStack: symbol[] = [];
 
 export function Modal({
   isOpen,
@@ -11,6 +20,32 @@ export function Modal({
   title: string;
   children: ReactNode;
 }) {
+  // Hooks run on every render regardless of isOpen — the `if (!isOpen)
+  // return null` below happens after, per the rules of hooks.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const id = Symbol("modal");
+    openModalStack.push(id);
+
+    // Bubble phase (the addEventListener default): a child that already
+    // handles Escape and calls stopPropagation — a select's dropdown, e.g. —
+    // is never seen here, so this never fights an element that already
+    // owns the key for its own purpose.
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (openModalStack[openModalStack.length - 1] !== id) return;
+      onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      const index = openModalStack.indexOf(id);
+      if (index !== -1) openModalStack.splice(index, 1);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
