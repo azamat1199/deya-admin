@@ -20,7 +20,9 @@
     "signIn": "Kirish",
     "usernameRequired": "Foydalanuvchi nomi majburiy",
     "passwordRequired": "Parol majburiy",
-    "welcomeBack": "Xush kelibsiz!"
+    "welcomeBack": "Xush kelibsiz!",
+    "showPassword": "Parolni ko'rsatish",
+    "hidePassword": "Parolni yashirish"
   },
   "dashboard": {
     "title": "Bosh sahifa",

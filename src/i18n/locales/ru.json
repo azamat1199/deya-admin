@@ -20,7 +20,9 @@
     "signIn": "Войти",
     "usernameRequired": "Имя пользователя обязательно",
     "passwordRequired": "Пароль обязателен",
-    "welcomeBack": "С возвращением!"
+    "welcomeBack": "С возвращением!",
+    "showPassword": "Показать пароль",
+    "hidePassword": "Скрыть пароль"
   },
   "dashboard": {
     "title": "Главная",

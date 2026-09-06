@@ -5,6 +5,7 @@ import { z } from "zod";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../context/useAuth";
 import { Input } from "../components/ui/Input";
 import { Button } from "../components/ui/Button";
@@ -23,6 +24,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -75,15 +77,31 @@ export default function Login() {
               }
               {...register("username")}
             />
-            <Input
-              label={t("login.password")}
-              type="password"
-              autoComplete="current-password"
-              error={
-                errors.password && t("login.passwordRequired")
-              }
-              {...register("password")}
-            />
+            <div className="relative">
+              <Input
+                label={t("login.password")}
+                type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
+                error={
+                  errors.password && t("login.passwordRequired")
+                }
+                {...register("password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute bottom-2.5 right-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                aria-label={t(
+                  showPassword ? "login.hidePassword" : "login.showPassword",
+                )}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
             <Button type="submit" isLoading={isSubmitting} className="mt-2">
               {t("login.signIn")}
             </Button>

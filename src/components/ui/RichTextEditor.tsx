@@ -18,6 +18,19 @@ import {
   Redo,
 } from "lucide-react";
 
+/**
+ * Public-site consumer survey (deya-app), current as of the colour/image
+ * gate — check before adding any feature here whose value is markup, not
+ * just text. Factory.title/description and ProductInfo.title/description
+ * render as PLAIN JSX TEXT (no dangerouslySetInnerHTML): any HTML in them
+ * shows as literal escaped tag characters. Factory.subtitle/subdescription
+ * and (as of the fix in CareersBrands.tsx) Companies.description go through
+ * `sanitizeRichText` before dangerouslySetInnerHTML — its allowlist is only
+ * p/br/strong/b/em/i/a, so a colour span or an <img> is silently stripped.
+ * PrivacyPolicy.body and StaticPages.body aren't fetched by deya-app at all.
+ * PostBlockModal uses a plain Textarea, not this component.
+ */
+
 function ToolbarButton({
   onClick,
   isActive,
