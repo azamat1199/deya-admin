@@ -1,9 +1,11 @@
 import { apiClient } from "./client";
 import type {
-  CatalogItemBase,
-  CatalogItemPayload,
+  CatalogListItem,
+  CatalogWritePayloadBase,
   Category,
+  CategoryPayload,
   Flavor,
+  FlavorPayload,
   ProductFamily,
   ProductFamilyPayload,
   PatchProductFamilyRequest,
@@ -18,25 +20,31 @@ import type {
   PatchWeightRequest,
 } from "../types/catalog";
 
-/** CRUD calls for a simple catalog resource — all of them share the same
- * request/response shape, only the base path differs per resource. */
-function createCatalogItemApi<T extends CatalogItemBase>(basePath: string) {
+/** CRUD calls for a simple catalog resource. `T`/`P` are per-resource —
+ * Category and Flavor have genuinely different write shapes (image and
+ * is_active exist only on Category), so this is parametrized over both
+ * rather than assuming one payload shape for every resource. */
+function createCatalogItemApi<
+  T extends CatalogListItem,
+  P extends CatalogWritePayloadBase,
+>(basePath: string) {
   return {
     list: () => apiClient.get<T[]>(basePath),
     get: (id: number) => apiClient.get<T>(`${basePath}${id}/`),
-    create: (data: CatalogItemPayload) => apiClient.post<T>(basePath, data),
-    update: (id: number, data: CatalogItemPayload) =>
-      apiClient.put<T>(`${basePath}${id}/`, data),
-    patch: (id: number, data: Partial<CatalogItemPayload>) =>
+    create: (data: P) => apiClient.post<T>(basePath, data),
+    update: (id: number, data: P) => apiClient.put<T>(`${basePath}${id}/`, data),
+    patch: (id: number, data: Partial<P>) =>
       apiClient.patch<T>(`${basePath}${id}/`, data),
     remove: (id: number) => apiClient.delete<void>(`${basePath}${id}/`),
   };
 }
 
-const categories = createCatalogItemApi<Category>(
+const categories = createCatalogItemApi<Category, CategoryPayload>(
   "/api/v1/admin/catalog/categories/",
 );
-const flavors = createCatalogItemApi<Flavor>("/api/v1/admin/catalog/flavors/");
+const flavors = createCatalogItemApi<Flavor, FlavorPayload>(
+  "/api/v1/admin/catalog/flavors/",
+);
 
 const PRODUCT_FAMILIES_URL = "/api/v1/admin/catalog/product-families/";
 const PRODUCT_IMAGES_URL = "/api/v1/admin/catalog/product-images/";

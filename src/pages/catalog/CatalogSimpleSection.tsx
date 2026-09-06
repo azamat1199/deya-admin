@@ -11,27 +11,46 @@ import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
-import type { CatalogItemBase, CatalogItemPayload } from "../../types/catalog";
+import type { CatalogListItem, CatalogWritePayloadBase } from "../../types/catalog";
 
-export interface CatalogItemApi<T extends CatalogItemBase> {
+export interface CatalogItemApi<
+  T extends CatalogListItem,
+  P extends CatalogWritePayloadBase,
+> {
   list: () => Promise<{ data: T[] }>;
-  create: (payload: CatalogItemPayload) => Promise<{ data: T }>;
-  update: (id: number, payload: CatalogItemPayload) => Promise<{ data: T }>;
-  patch: (id: number, payload: Partial<CatalogItemPayload>) => Promise<{ data: T }>;
+  create: (payload: P) => Promise<{ data: T }>;
+  update: (id: number, payload: P) => Promise<{ data: T }>;
+  patch: (id: number, payload: Partial<P>) => Promise<{ data: T }>;
   remove: (id: number) => Promise<unknown>;
 }
 
+/** Fields present on `T` only for resources that have them — see the same
+ * type in CatalogItemModal.tsx. */
+interface OptionalCatalogFields {
+  image?: string;
+  is_active?: boolean;
+  created_at?: string;
+}
+
 /** Full list+modal+delete page for a simple catalog resource (Categories,
- * Flavors, ...) — they all share the same name/slug/image/sort_order/
- * is_active shape, so `i18nNamespace` + `api` is all a page needs to say. */
-export function CatalogSimpleSection<T extends CatalogItemBase>({
+ * Flavors, ...). `hasImage`/`hasIsActive` say which of the two
+ * resource-specific columns/fields this instance actually has —
+ * Categories passes both true, Flavors both false. */
+export function CatalogSimpleSection<
+  T extends CatalogListItem,
+  P extends CatalogWritePayloadBase,
+>({
   i18nNamespace,
   localeKey,
+  hasImage,
+  hasIsActive,
   api,
 }: {
   i18nNamespace: string;
   localeKey: string;
-  api: CatalogItemApi<T>;
+  hasImage: boolean;
+  hasIsActive: boolean;
+  api: CatalogItemApi<T, P>;
 }) {
   const { t, i18n } = useTranslation();
   const locale = useLocale();
@@ -70,11 +89,16 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
     }
   };
 
-  const handleToggleActive = async (item: T) => {
+  // Only reachable when hasIsActive is true — the column that calls this is
+  // itself gated on the same flag. The cast bridges `P` (whichever payload
+  // type the caller passed) to the fact that this resource has `is_active`,
+  // a correlation the shared generic can't express statically (see
+  // CatalogItemModal's onSubmit for the same pattern).
+  const handleToggleActive = async (item: T & OptionalCatalogFields) => {
     const nextActive = !item.is_active;
     replace(item.id, (i) => ({ ...i, is_active: nextActive }));
     try {
-      await api.patch(item.id, { is_active: nextActive });
+      await api.patch(item.id, { is_active: nextActive } as unknown as Partial<P>);
     } catch {
       replace(item.id, (i) => ({ ...i, is_active: item.is_active }));
       toast.error(tt("statusUpdateError"));
@@ -82,22 +106,28 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
   };
 
   const columns: Column<T>[] = [
-    {
-      key: "image",
-      header: tt("image"),
-      render: (item) =>
-        item.image ? (
-          <img
-            src={item.image}
-            alt={resolve(item.name, locale)}
-            className="h-10 w-16 rounded object-cover"
-          />
-        ) : (
-          <span className="flex h-10 w-16 items-center justify-center rounded bg-slate-100 dark:bg-slate-800">
-            <ImageIcon className="h-4 w-4 text-slate-400" />
-          </span>
-        ),
-    },
+    ...(hasImage
+      ? [
+          {
+            key: "image",
+            header: tt("image"),
+            render: (item: T) => {
+              const image = (item as T & OptionalCatalogFields).image;
+              return image ? (
+                <img
+                  src={image}
+                  alt={resolve(item.name, locale)}
+                  className="h-10 w-16 rounded object-cover"
+                />
+              ) : (
+                <span className="flex h-10 w-16 items-center justify-center rounded bg-slate-100 dark:bg-slate-800">
+                  <ImageIcon className="h-4 w-4 text-slate-400" />
+                </span>
+              );
+            },
+          } satisfies Column<T>,
+        ]
+      : []),
     {
       key: "name",
       header: tt("name"),
@@ -119,27 +149,34 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
       header: tt("sortOrder"),
       render: (item) => item.sort_order,
     },
-    {
-      key: "is_active",
-      header: tt("status"),
-      render: (item) => (
-        <div className="flex items-center gap-2">
-          <Switch
-            checked={item.is_active}
-            onChange={() => handleToggleActive(item)}
-            aria-label={tt("status")}
-          />
-          <span>{tt(item.is_active ? "active" : "inactive")}</span>
-        </div>
-      ),
-    },
+    ...(hasIsActive
+      ? [
+          {
+            key: "is_active",
+            header: tt("status"),
+            render: (item: T) => {
+              const activeItem = item as T & OptionalCatalogFields;
+              return (
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={activeItem.is_active ?? false}
+                    onChange={() => handleToggleActive(activeItem)}
+                    aria-label={tt("status")}
+                  />
+                  <span>{tt(activeItem.is_active ? "active" : "inactive")}</span>
+                </div>
+              );
+            },
+          } satisfies Column<T>,
+        ]
+      : []),
     {
       key: "created_at",
       header: tt("createdAt"),
-      render: (item) =>
-        item.created_at
-          ? new Date(item.created_at).toLocaleDateString(i18n.language)
-          : "—",
+      render: (item) => {
+        const createdAt = (item as T & OptionalCatalogFields).created_at;
+        return createdAt ? new Date(createdAt).toLocaleDateString(i18n.language) : "—";
+      },
     },
   ];
 
@@ -183,6 +220,8 @@ export function CatalogSimpleSection<T extends CatalogItemBase>({
         nextSortOrder={nextSortOrder}
         onSaved={upsert}
         i18nNamespace={i18nNamespace}
+        hasImage={hasImage}
+        hasIsActive={hasIsActive}
         create={api.create}
         update={api.update}
       />

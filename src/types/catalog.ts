@@ -1,7 +1,27 @@
 import type { Translatable, TranslatableInput } from "../api/i18n";
 import type { ProductBadge } from "../constants/productBadge";
 
-/** Shared shape for simple catalog resources (Categories, Flavors, ...). */
+/**
+ * Minimal read/write shape every "simple" catalog resource shares — the
+ * generic bound for CatalogSimpleSection/CatalogItemModal. Category's own
+ * CatalogItemBase is a superset of this (image, is_active, timestamps);
+ * Flavor is not, which is why the shared components are bounded by this
+ * narrower pair instead of by CatalogItemBase.
+ */
+export interface CatalogListItem {
+  id: number;
+  name: Translatable | string;
+  slug: string;
+  sort_order: number;
+}
+
+export interface CatalogWritePayloadBase {
+  name: TranslatableInput;
+  slug: string;
+  sort_order: number;
+}
+
+/** Category's actual shape — unchanged. */
 export interface CatalogItemBase {
   id: number;
   name: Translatable | string;
@@ -25,8 +45,26 @@ export type Category = CatalogItemBase;
 export type CategoryPayload = CatalogItemPayload;
 export type PatchCategoryRequest = Partial<CategoryPayload>;
 
-export type Flavor = CatalogItemBase;
-export type FlavorPayload = CatalogItemPayload;
+/**
+ * Standalone — NOT CatalogItemBase. Confirmed against the schema
+ * (FlavorAdminRequest / Flavor): no image, no is_active, no timestamps.
+ * `sort_order` is kept because FlavorAdminRequest writes one and the shared
+ * list's ordering/next-value logic depends on every resource having one —
+ * nothing is added here that the API doesn't actually have.
+ */
+export interface Flavor {
+  id: number;
+  name: Translatable | string;
+  slug: string;
+  sort_order: number;
+}
+
+export interface FlavorPayload {
+  name: TranslatableInput;
+  slug: string;
+  sort_order: number;
+}
+
 export type PatchFlavorRequest = Partial<FlavorPayload>;
 
 export interface ProductFamily {

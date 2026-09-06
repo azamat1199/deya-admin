@@ -14,7 +14,7 @@ import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { localesFor } from "../../api/locale-support";
 import { slugify } from "../../utils/slugify";
-import type { CatalogItemBase, CatalogItemPayload } from "../../types/catalog";
+import type { CatalogListItem, CatalogWritePayloadBase } from "../../types/catalog";
 
 // `name` is admin-authored free text -> translatable. slug / sort_order /
 // is_active / image are structural and stay plain.
@@ -44,10 +44,24 @@ function buildEmptyValues(sortOrder: number): FormValues {
   };
 }
 
+/** Fields present on `item`/the payload only for resources that have them.
+ * `T`/`P` don't statically carry image/is_active (Flavor has neither), so
+ * reading or building them is gated behind `hasImage`/`hasIsActive` and
+ * narrowed through this rather than widening the shared types themselves. */
+interface OptionalCatalogFields {
+  image?: string;
+  is_active?: boolean;
+}
+
 /** Add/edit form shared by every simple catalog resource (Categories,
- * Flavors, ...) — they all use the same name/slug/image/sort_order/
- * is_active shape, so one form serves all of them via `i18nNamespace`. */
-export function CatalogItemModal<T extends CatalogItemBase>({
+ * Flavors, ...). `hasImage`/`hasIsActive` say which of the two
+ * resource-specific fields this instance actually has — Categories passes
+ * both true, Flavors both false. Everything else (name/slug/sort_order) is
+ * unconditional because every simple catalog resource has it. */
+export function CatalogItemModal<
+  T extends CatalogListItem,
+  P extends CatalogWritePayloadBase,
+>({
   isOpen,
   onClose,
   item,
@@ -55,6 +69,8 @@ export function CatalogItemModal<T extends CatalogItemBase>({
   onSaved,
   i18nNamespace,
   localeKey,
+  hasImage,
+  hasIsActive,
   create,
   update,
 }: {
@@ -66,8 +82,10 @@ export function CatalogItemModal<T extends CatalogItemBase>({
   i18nNamespace: string;
   /** locale-support key for this resource, e.g. "catalog/categories". */
   localeKey: string;
-  create: (payload: CatalogItemPayload) => Promise<{ data: T }>;
-  update: (id: number, payload: CatalogItemPayload) => Promise<{ data: T }>;
+  hasImage: boolean;
+  hasIsActive: boolean;
+  create: (payload: P) => Promise<{ data: T }>;
+  update: (id: number, payload: P) => Promise<{ data: T }>;
 }) {
   const { t } = useTranslation();
   const locales = localesFor(localeKey);
@@ -98,7 +116,7 @@ export function CatalogItemModal<T extends CatalogItemBase>({
   // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
 
-   
+
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -118,22 +136,30 @@ export function CatalogItemModal<T extends CatalogItemBase>({
       reset(buildEmptyValues(nextSortOrder));
       setSlugEdited(false);
     }
-    setIsActive(item?.is_active ?? true);
-    setImageUrl(item?.image ?? null);
-  }, [isOpen, item, nextSortOrder, reset]);
+    const optional = item as (T & OptionalCatalogFields) | null;
+    if (hasIsActive) setIsActive(optional?.is_active ?? true);
+    if (hasImage) setImageUrl(optional?.image ?? null);
+  }, [isOpen, item, nextSortOrder, reset, hasImage, hasIsActive]);
   /* eslint-enable react-hooks/set-state-in-effect */
-   
+
 
   const onSubmit = async (values: FormValues) => {
     setIsSubmitting(true);
     try {
-      const payload: CatalogItemPayload = {
+      // `P` is whichever resource's real payload type the caller passed
+      // (CategoryPayload or FlavorPayload) — image/is_active are added only
+      // when this instance actually has them, so the object this builds
+      // always matches what P requires. The cast bridges that: hasImage/
+      // hasIsActive and P are supplied together by the same caller
+      // (Categories.tsx / Flavors.tsx), a correlation the type system has
+      // no way to see from inside a shared generic component.
+      const payload = {
         name: buildTranslatable(values.name, item?.name, locales),
         slug: values.slug,
         sort_order: Number(values.sort_order),
-        is_active: isActive,
-        ...(imageUrl ? { image: imageUrl } : {}),
-      };
+        ...(hasIsActive ? { is_active: isActive } : {}),
+        ...(hasImage && imageUrl ? { image: imageUrl } : {}),
+      } as P;
       const { data } = item
         ? await update(item.id, payload)
         : await create(payload);
@@ -195,12 +221,14 @@ export function CatalogItemModal<T extends CatalogItemBase>({
           })}
         />
 
-        <FileUpload
-          label={`${t(`${i18nNamespace}.image`)} (${t(`${i18nNamespace}.optional`)})`}
-          value={imageUrl}
-          onChange={setImageUrl}
-          onUploadingChange={setIsUploadingImage}
-        />
+        {hasImage && (
+          <FileUpload
+            label={`${t(`${i18nNamespace}.image`)} (${t(`${i18nNamespace}.optional`)})`}
+            value={imageUrl}
+            onChange={setImageUrl}
+            onUploadingChange={setIsUploadingImage}
+          />
+        )}
 
         <Input
           label={t(`${i18nNamespace}.sortOrder`)}
@@ -211,16 +239,18 @@ export function CatalogItemModal<T extends CatalogItemBase>({
           {...register("sort_order")}
         />
 
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-            {t(`${i18nNamespace}.status`)}
-          </span>
-          <Switch
-            checked={isActive}
-            onChange={setIsActive}
-            aria-label={t(`${i18nNamespace}.status`)}
-          />
-        </div>
+        {hasIsActive && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {t(`${i18nNamespace}.status`)}
+            </span>
+            <Switch
+              checked={isActive}
+              onChange={setIsActive}
+              aria-label={t(`${i18nNamespace}.status`)}
+            />
+          </div>
+        )}
 
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>

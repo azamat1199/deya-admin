@@ -1,12 +1,14 @@
 import { CatalogSimpleSection } from "./CatalogSimpleSection";
 import { catalogApi } from "../../api/catalog";
-import type { Flavor } from "../../types/catalog";
+import type { Flavor, FlavorPayload } from "../../types/catalog";
 
 export default function Flavors() {
   return (
-    <CatalogSimpleSection<Flavor>
+    <CatalogSimpleSection<Flavor, FlavorPayload>
       i18nNamespace="catalog.flavors"
       localeKey="catalog/flavors"
+      hasImage={false}
+      hasIsActive={false}
       api={{
         list: catalogApi.getFlavors,
         create: catalogApi.createFlavor,

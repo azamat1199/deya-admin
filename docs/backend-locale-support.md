@@ -38,6 +38,16 @@ restricted to `{ru, en}`; a later request body spec for that endpoint showed
 these languages: uz, ru, en" wording. Its entry has also been removed from
 `SUPPORTED_LOCALES`.
 
+**Update 3:** the same flip happened on `about/factory` — the very endpoint
+this doc opens with. It was restricted to `{ru, en}` (the 400 shown above);
+a later task's request body spec showed all four fields sent as
+`{uz, ru, en}`, same wording. Its entry has been removed from
+`SUPPORTED_LOCALES` too. Three of the four originally-documented endpoints
+have now flipped from rejecting `uz` to requiring it; only
+`catalog/categories` was ever confirmed accepting it from the start. At this
+point, assume any endpoint's restriction is unverified until a fresh 400
+says otherwise — do not extrapolate from what this doc said last time.
+
 ## Why this is a backend bug, not a frontend one
 
 1. **The public site serves `/uz/` routes.** With `uz` unsupported on most

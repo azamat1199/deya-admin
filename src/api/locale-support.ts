@@ -8,16 +8,14 @@
  *   "This field must contain exactly these languages: ru, en."
  *
  * Both extra and missing keys fail, so a write must carry exactly the set
- * listed here. `catalog/categories` accepts `uz`; `about/factory` does not
- * (yet). That inconsistency is a backend bug (see
- * docs/backend-locale-support.md) — this map is the workaround, and it is
- * deliberately the only place the workaround lives.
+ * listed here. This map is the workaround, and it is deliberately the only
+ * place the workaround lives — see docs/backend-locale-support.md.
  *
- * `catalog/products` and `careers/companies` WERE restricted to ru/en (see
- * git history), but the backend has since started requiring exactly
- * uz/ru/en on both — the opposite constraint. Their entries are gone; do not
- * re-add either without a fresh 400 confirming which way it's restricted
- * today.
+ * `catalog/products`, `careers/companies`, and `about/factory` WERE each
+ * restricted to ru/en (see git history), but the backend has since started
+ * requiring exactly uz/ru/en on all three — the opposite constraint. Their
+ * entries are gone; do not re-add any of them without a fresh 400 confirming
+ * which way that endpoint is restricted today.
  *
  * Keys are `<section>/<resource>`, matching the admin URL path.
  *
@@ -31,8 +29,6 @@
 import { LOCALES, type Locale } from "./i18n";
 
 export const SUPPORTED_LOCALES: Record<string, readonly Locale[]> = {
-  // Confirmed by a real 400 on PATCH /api/v1/admin/about/factory/.
-  "about/factory": ["ru", "en"],
   // Confirmed accepting uz — listed explicitly so it reads as measured rather
   // than merely unmeasured.
   "catalog/categories": ["ru", "uz", "en"],
