@@ -19,11 +19,17 @@
  *
  * Keys are `<section>/<resource>`, matching the admin URL path.
  *
- * An endpoint that is absent falls back to the full LOCALES set, i.e. today's
- * behaviour. Only add an entry once a real 400 (or a real 200) has confirmed
- * it — an unverified guess here silently narrows a form that was working.
+ * TREAT THIS MAP AS SUSPECT BY DEFAULT, NOT AS A RECORD OF FACT. Three of
+ * the four entries ever added here have gone stale and started producing
+ * the exact 400 they were meant to prevent. If you hit
+ * "must contain exactly these languages" on ANY endpoint, check whether that
+ * endpoint has an entry here BEFORE you assume the form is building the
+ * wrong payload — a stale entry is now the more likely cause than a bug in
+ * the screen.
  *
- * When the backend adds `uz` everywhere, deleting an entry is the whole fix.
+ * Only add an entry once a real 400 (or a real 200) has confirmed it today —
+ * an unverified guess here silently narrows a form that was working. When
+ * the backend adds `uz` everywhere, deleting an entry is the whole fix.
  */
 
 import { LOCALES, type Locale } from "./i18n";

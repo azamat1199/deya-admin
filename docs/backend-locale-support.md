@@ -44,9 +44,16 @@ a later task's request body spec showed all four fields sent as
 `{uz, ru, en}`, same wording. Its entry has been removed from
 `SUPPORTED_LOCALES` too. Three of the four originally-documented endpoints
 have now flipped from rejecting `uz` to requiring it; only
-`catalog/categories` was ever confirmed accepting it from the start. At this
-point, assume any endpoint's restriction is unverified until a fresh 400
-says otherwise — do not extrapolate from what this doc said last time.
+`catalog/categories` was ever confirmed accepting it from the start.
+
+**Read this part before debugging a locale 400, not after:**
+`SUPPORTED_LOCALES` in `src/api/locale-support.ts` is suspect by default, not
+a record of fact — three of its four entries have gone stale so far, each
+one silently causing the exact 400 it existed to prevent. If a save fails
+with "must contain exactly these languages," **check that file first.** A
+stale map entry is now a more likely cause than a bug in the screen you're
+looking at. Do not extrapolate from what this doc said last time either —
+confirm fresh, every time, with a real request.
 
 ## Why this is a backend bug, not a frontend one
 

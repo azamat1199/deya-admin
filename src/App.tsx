@@ -95,7 +95,10 @@ function App() {
           <Route path="static-pages/create" element={<StaticPageEditor />} />
           <Route path="static-pages/:id/edit" element={<StaticPageEditor />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="privacy-policy/:slug/edit" element={<PrivacyPolicyPageEditor />} />
+          <Route
+            path="privacy-policy/:slug/edit"
+            element={<PrivacyPolicyPageEditor />}
+          />
         </Route>
         <Route path="/partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="partners" replace />} />
