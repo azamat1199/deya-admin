@@ -36,6 +36,8 @@ import StaticPages from "./pages/pages/StaticPages";
 import StaticPageEditor from "./pages/pages/StaticPageEditor";
 import PrivacyPolicy from "./pages/pages/PrivacyPolicy";
 import PrivacyPolicyPageEditor from "./pages/pages/PrivacyPolicyPageEditor";
+import Banners from "./pages/pages/Banners";
+import BannerEditor from "./pages/pages/BannerEditor";
 import PartnersLayout from "./pages/partners/PartnersLayout";
 import Certificates from "./pages/partners/Certificates";
 import PartnersList from "./pages/partners/PartnersList";
@@ -99,6 +101,9 @@ function App() {
             path="privacy-policy/:slug/edit"
             element={<PrivacyPolicyPageEditor />}
           />
+          <Route path="banners" element={<Banners />} />
+          <Route path="banners/create" element={<BannerEditor />} />
+          <Route path="banners/:id/edit" element={<BannerEditor />} />
         </Route>
         <Route path="/partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="partners" replace />} />

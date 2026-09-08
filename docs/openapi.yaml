@@ -7263,6 +7263,13 @@ components:
         * `heading` - heading
         * `text` - text
         * `image` - image
+    # STALE as of 2026-09-08: this snapshot (dated 2026-09-03, see file mtime
+    # at the time) lists only "partner", but a real 200 on
+    # PATCH /api/v1/admin/pages/banners/1/ with {"type": "main"} confirmed
+    # the backend also accepts "about", "carrier" (not "career" — that's the
+    # backend's actual spelling), and "main". Left un-hand-edited below so
+    # the discrepancy is visible rather than silently patched over; the
+    # frontend source of truth is src/constants/bannerType.ts.
     TypeEb8Enum:
       enum:
       - partner

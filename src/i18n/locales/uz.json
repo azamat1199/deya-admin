@@ -616,7 +616,8 @@
     "tabs": {
       "settings": "Sozlamalar",
       "staticPages": "Statik sahifalar",
-      "privacyPolicy": "Maxfiylik siyosati"
+      "privacyPolicy": "Maxfiylik siyosati",
+      "banners": "Bannerlar"
     },
     "settings": {
       "title": "Sayt sozlamalari",
@@ -700,6 +701,37 @@
       "emptySlug": "Slug bo'sh",
       "emptySlugHint": "Bu yozuvning slugi bo'sh — shu sababli API manzili noto'g'ri bo'ladi. Backend slugni tuzatmaguncha tahrirlash va o'chirish mumkin emas.",
       "slugLocked": "Slug yaratilgandan keyin o'zgartirilmaydi — saqlash shu manzil bo'yicha amalga oshiriladi."
+    },
+    "banners": {
+      "title": "Bannerlar",
+      "addBanner": "Banner qo'shish",
+      "editBanner": "Bannerni tahrirlash",
+      "pageTitle": "Sarlavha",
+      "subtitle": "Kichik sarlavha",
+      "ctaUrl": "Tugma havolasi",
+      "ctaUrlInvalid": "To'g'ri havola kiriting",
+      "image": "Rasm",
+      "imageRequired": "Rasm majburiy",
+      "actions": "Amallar",
+      "empty": "Hozircha bannerlar yo'q.",
+      "loadError": "Bannerni yuklab bo'lmadi.",
+      "retry": "Qayta urinish",
+      "confirmDeleteTitle": "Bannerni o'chirish",
+      "confirmDeleteMessage": "\"{{name}}\" bannerini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.",
+      "delete": "O'chirish",
+      "cancel": "Bekor qilish",
+      "save": "Saqlash",
+      "create": "Yaratish",
+      "createSuccess": "Banner muvaffaqiyatli yaratildi",
+      "updateSuccess": "Banner muvaffaqiyatli yangilandi",
+      "deleteSuccess": "Banner o'chirildi",
+      "titleRequired": "Sarlavha majburiy",
+      "unsavedChangesConfirm": "Saqlanmagan o'zgarishlar mavjud. Saqlamasdan chiqasizmi?",
+      "type": "Turi",
+      "type_main": "Bosh sahifa",
+      "type_carrier": "Karyera",
+      "type_partner": "Hamkor",
+      "type_unknown": "Noma'lum turi"
     }
   },
   "partners": {
