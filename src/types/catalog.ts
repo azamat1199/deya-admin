@@ -67,16 +67,19 @@ export interface FlavorPayload {
 
 export type PatchFlavorRequest = Partial<FlavorPayload>;
 
+// Confirmed against the schema (ProductFamilyAdminRequest/ProductFamilyAdmin):
+// name is a PLAIN STRING, not translatable. Wrapping it produces
+// {"name": ["Not a valid string."]}.
 export interface ProductFamily {
   id: number;
-  name: Translatable | string;
+  name: string;
   slug: string;
   created_at: string;
   updated_at: string;
 }
 
 export interface ProductFamilyPayload {
-  name: TranslatableInput;
+  name: string;
   slug: string;
 }
 
