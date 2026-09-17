@@ -1,34 +1,9 @@
 import { NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import {
-  Pin,
-  PinOff,
-  LayoutGrid,
-  Info,
-  Newspaper,
-  Briefcase,
-  Package,
-  Contact,
-  FileText,
-  Handshake,
-  // Users,
-  Settings,
-} from "lucide-react";
+import { Pin, PinOff } from "lucide-react";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { ProfilePopover } from "./ProfilePopover";
-
-const NAV_ITEMS = [
-  { key: "dashboard", path: "/", icon: LayoutGrid },
-  { key: "about", path: "/about", icon: Info },
-  { key: "blog", path: "/blog", icon: Newspaper },
-  { key: "careers", path: "/careers", icon: Briefcase },
-  { key: "catalog", path: "/catalog", icon: Package },
-  { key: "leads", path: "/leads", icon: Contact },
-  { key: "pages", path: "/pages", icon: FileText },
-  { key: "partners", path: "/partners", icon: Handshake },
-  { key: "auth", path: "/auth", icon: Settings },
-  // { key: "users", path: "/users", icon: Users },
-];
+import { NAV_ITEMS } from "./nav-items";
 
 export function Sidebar({
   mobileOpen,
