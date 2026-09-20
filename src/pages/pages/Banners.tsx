@@ -18,9 +18,13 @@ export default function Banners() {
   const { t } = useTranslation();
   const locale = useLocale();
   const navigate = useNavigate();
-  const { items, isLoading, hasError, remove } = useCrudList(
+  const { items: allItems, isLoading, hasError, remove } = useCrudList(
     bannersApi.getBanners,
   );
+  // The main-page-text singleton lives on this same resource but has its
+  // own dedicated tab (Pages → main-text) — it's not a banner an editor
+  // creates/deletes here, so it never appears in this table.
+  const items = allItems.filter((b) => b.type !== "main_text");
 
   const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

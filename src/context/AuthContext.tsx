@@ -26,9 +26,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setHasToken(false);
   }, []);
 
+  /** Local-only sign-out — see AuthContextValue for why this exists. */
+  const clearSession = useCallback(() => {
+    clearToken();
+    setUser(null);
+    setHasToken(false);
+  }, []);
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated: hasToken, login, logout }}
+      value={{ user, isAuthenticated: hasToken, login, logout, clearSession }}
     >
       {children}
     </AuthContext.Provider>

@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { Placeholder } from "./pages/Placeholder";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/users/Users";
+import Profile from "./pages/profile/Profile";
 import AboutLayout from "./pages/about/AboutLayout";
 import ExportRegions from "./pages/about/ExportRegions";
 import Slides from "./pages/about/Slides";
@@ -38,6 +38,7 @@ import PrivacyPolicy from "./pages/pages/PrivacyPolicy";
 import PrivacyPolicyPageEditor from "./pages/pages/PrivacyPolicyPageEditor";
 import Banners from "./pages/pages/Banners";
 import BannerEditor from "./pages/pages/BannerEditor";
+import MainText from "./pages/pages/MainText";
 import PartnersLayout from "./pages/partners/PartnersLayout";
 import Certificates from "./pages/partners/Certificates";
 import PartnersList from "./pages/partners/PartnersList";
@@ -104,6 +105,7 @@ function App() {
           <Route path="banners" element={<Banners />} />
           <Route path="banners/create" element={<BannerEditor />} />
           <Route path="banners/:id/edit" element={<BannerEditor />} />
+          <Route path="main-text" element={<MainText />} />
         </Route>
         <Route path="/partners" element={<PartnersLayout />}>
           <Route index element={<Navigate to="partners" replace />} />
@@ -111,7 +113,7 @@ function App() {
           <Route path="certificates" element={<Certificates />} />
         </Route>
         <Route path="/users" element={<Users />} />
-        <Route path="/auth" element={<Placeholder titleKey="auth" />} />
+        <Route path="/auth" element={<Profile />} />
       </Route>
     </Routes>
   );

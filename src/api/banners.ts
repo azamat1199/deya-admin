@@ -1,5 +1,10 @@
 import { apiClient } from "./client";
-import type { Banner, BannerPayload, PatchBannerRequest } from "../types/banners";
+import type {
+  Banner,
+  BannerPayload,
+  PatchBannerRequest,
+  PatchMainTextRequest,
+} from "../types/banners";
 
 const BANNERS_URL = "/api/v1/admin/pages/banners/";
 
@@ -15,8 +20,12 @@ export const bannersApi = {
    * deliberately not exposed: a full replace risks a caller accidentally
    * re-sending the display image URL or clobbering a field it didn't
    * load — the same reasoning pages/privacy-policy's API layer uses.
+   *
+   * Accepts PatchMainTextRequest too: the type="main_text" record is the
+   * same resource at the same URL, just a different editable field set —
+   * no second endpoint, so no second function.
    */
-  patchBanner: (id: number, data: PatchBannerRequest) =>
+  patchBanner: (id: number, data: PatchBannerRequest | PatchMainTextRequest) =>
     apiClient.patch<Banner>(`${BANNERS_URL}${id}/`, data),
 
   deleteBanner: (id: number) => apiClient.delete<void>(`${BANNERS_URL}${id}/`),

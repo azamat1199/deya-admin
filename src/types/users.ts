@@ -1,3 +1,12 @@
+/**
+ * POST /api/v1/user/set-password/ — the authenticated user setting their
+ * own password without the old one. The confirmation field in the form is
+ * client-side only and is never part of this payload.
+ */
+export interface SetPasswordPayload {
+  password: string;
+}
+
 export interface CreateUserPayload {
   username: string;
   first_name: string;
