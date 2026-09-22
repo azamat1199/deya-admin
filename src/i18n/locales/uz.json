@@ -736,20 +736,21 @@
     },
     "mainText": {
       "title": "Bosh sahifa matnlari",
-      "description": "Lending bosh sahifasidagi raqamli/matnli bloklar.",
-      "editTitle": "Bosh sahifa matnlarini tahrirlash",
+      "aboutTitle": "Fabrika haqida sarlavha",
+      "about": "Fabrika tavsifi",
+      "subMain": "Bosh sahifa qo'shimcha sarlavhasi",
+      "subMainMap": "Eksport xaritasi qo'shimcha sarlavhasi",
       "edit": "Tahrirlash",
       "retry": "Qayta urinish",
-      "notFound": "type=main_text yozuvi topilmadi. Backend jamoasiga murojaat qiling — bu yerda yaratish mumkin emas.",
+      "emptyText": "Matn to'ldirilmagan",
+      "missingRecord": "«{{type}}» turidagi yozuv topilmadi — uni API orqali yarating.",
       "loadError": "Bosh sahifa matnlarini yuklab bo'lmadi.",
-      "duplicateWarning": "type=main_text turidagi {{count}} ta yozuv topildi. Birinchisi (id={{id}}) tahrirlanmoqda.",
-      "createdFabric": "Tashkil topgan fabrikalar",
-      "startsFabric": "Ish boshlash",
-      "techFabric": "Texnik jihozlanish",
-      "exportText": "Eksport haqida matn",
       "cancel": "Bekor qilish",
       "save": "Saqlash",
-      "updateSuccess": "Bosh sahifa matnlari yangilandi"
+      "updateSuccess": "Matn yangilandi",
+      "langRu": "Ruscha",
+      "langUz": "O'zbekcha",
+      "langEn": "Inglizcha"
     }
   },
   "partners": {

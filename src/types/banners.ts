@@ -18,13 +18,6 @@ export interface Banner {
   image: string;
   cta_label: TranslatableInput;
   cta_url: string;
-  // Present only on the single type="main_text" record — not part of the
-  // ordinary banner shape, so optional here rather than widening
-  // BannerPayload/BANNER_TYPES with a field every other banner lacks.
-  created_fabric?: TranslatableInput;
-  starts_fabric?: TranslatableInput;
-  tech_fabric?: TranslatableInput;
-  export_text?: TranslatableInput;
 }
 
 /**
@@ -52,18 +45,19 @@ export type PatchBannerRequest = Partial<Omit<BannerPayload, "image">> & {
 };
 
 /**
- * The four "main page text" fields on the type="main_text" singleton — the
- * same resource, same PATCH endpoint, but a completely different editable
- * surface. Never mixed with BannerPayload: title/subtitle/image/cta_label/
- * cta_url are deliberately absent from both this type and every payload
- * built from it, and `type` itself is never sent — this form doesn't edit
- * it.
+ * Edit payload for a landing-page text block (see MAIN_TEXT_SECTIONS).
+ *
+ * One language per FIELD, by deliberate design decision:
+ *   ru → title.ru      uz → subtitle.uz      en → cta_label.en
+ * Each field is still a full {uz, ru, en} object — the two slots that
+ * don't match the field's assigned language are sent as "". See the
+ * comment block in MainText.tsx for what this costs on the public site.
+ *
+ * `cta_url`, `image` and `type` are deliberately absent so they are never
+ * sent; timestamps are read-only and never included either.
  */
-export interface MainTextPayload {
-  created_fabric: TranslatableInput;
-  starts_fabric: TranslatableInput;
-  tech_fabric: TranslatableInput;
-  export_text: TranslatableInput;
+export interface PatchMainTextRequest {
+  title: TranslatableInput;
+  subtitle: TranslatableInput;
+  cta_label: TranslatableInput;
 }
-
-export type PatchMainTextRequest = Partial<MainTextPayload>;

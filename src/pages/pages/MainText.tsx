@@ -1,34 +1,78 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Pencil } from "lucide-react";
 import { Card } from "../../components/ui/Card";
 import { Button } from "../../components/ui/Button";
 import { bannersApi } from "../../api/banners";
+import { toTranslatable } from "../../api/i18n";
+import { MAIN_TEXT_SECTIONS } from "../../constants/mainTextSections";
 import { MainTextModal } from "./MainTextModal";
 import type { Banner } from "../../types/banners";
 
-const MAIN_TEXT_TYPE = "main_text";
+/**
+ * ─────────────────────────────────────────────────────────────────────────
+ * HOW THESE RECORDS STORE LANGUAGES — READ BEFORE WIRING THE PUBLIC SITE
+ * ─────────────────────────────────────────────────────────────────────────
+ * Each landing-page text block is one `banners` record, identified by its
+ * `type` (about_title / about / sub_main / sub_main_map). The three
+ * languages of the SAME text are spread across three different FIELDS:
+ *
+ *     Russian  → title.ru
+ *     Uzbek    → subtitle.uz
+ *     English  → cta_label.en
+ *
+ * Every one of those fields is itself a {uz, ru, en} object, and the two
+ * slots that don't match the field's assigned language are stored as "".
+ * So the language is encoded twice — by which field it's in AND by which
+ * key inside it — and those two always agree.
+ *
+ * CONSEQUENCE, deliberate and accepted: the public site will NOT find the
+ * Uzbek text where it would normally look. A /uz page resolving `title`
+ * gets title.uz, which is empty here — the Uzbek text is in subtitle.uz.
+ * Same for English: it is in cta_label.en, not title.en.
+ *
+ * When these texts are connected to the landing page, the site must read
+ * them with this same inverted mapping, NOT through the usual
+ * resolve(title, locale) path that every other resource uses. Anything
+ * that assumes "one field, three language slots" will silently render
+ * empty strings for uz and en.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
+interface Block {
+  type: string;
+  labelKey: string;
+  /** null when no record with this type exists yet. */
+  record: Banner | null;
+}
+
+/** Russian preview for the list — see the mapping note above. */
+function previewText(record: Banner | null): string {
+  if (!record) return "";
+  return toTranslatable(record.title).ru;
+}
 
 export default function MainText() {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const [record, setRecord] = useState<Banner | null>(null);
-  // Set when more than one main_text record exists — surfaced rather than
-  // silently picking one, per the brief: report it, don't hide it.
-  const [duplicateCount, setDuplicateCount] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [editing, setEditing] = useState<Block | null>(null);
 
-  const fetchRecord = useCallback(async () => {
+  const fetchBlocks = useCallback(async () => {
     setIsLoading(true);
     setHasError(false);
     try {
       const { data } = await bannersApi.getBanners();
-      const matches = data.filter((b) => b.type === MAIN_TEXT_TYPE);
-      // Never created here — an empty result is a real state to show, not
-      // something to paper over by creating a record.
-      setRecord(matches[0] ?? null);
-      setDuplicateCount(matches.length > 1 ? matches.length : 0);
+      // First matching record per type — duplicates exist in the data and
+      // are deliberately ignored here rather than deleted.
+      setBlocks(
+        MAIN_TEXT_SECTIONS.map((section) => ({
+          type: section.type,
+          labelKey: section.labelKey,
+          record: data.find((b) => b.type === section.type) ?? null,
+        })),
+      );
     } catch {
       setHasError(true);
     } finally {
@@ -36,12 +80,12 @@ export default function MainText() {
     }
   }, []);
 
-  /* eslint-disable react-hooks/set-state-in-effect -- loads the singleton
-     record on mount; a documented, standard effect use case
+  /* eslint-disable react-hooks/set-state-in-effect -- loads the records on
+     mount; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
   useEffect(() => {
-    fetchRecord();
-  }, [fetchRecord]);
+    fetchBlocks();
+  }, [fetchBlocks]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const heading = (
@@ -56,7 +100,7 @@ export default function MainText() {
         {heading}
         <Card className="flex flex-col items-start gap-3 p-6">
           <p className="text-sm text-red-600">{t("pages.mainText.loadError")}</p>
-          <Button variant="secondary" onClick={fetchRecord}>
+          <Button variant="secondary" onClick={fetchBlocks}>
             {t("pages.mainText.retry")}
           </Button>
         </Card>
@@ -75,54 +119,54 @@ export default function MainText() {
     );
   }
 
-  if (!record) {
-    return (
-      <div>
-        {heading}
-        <Card className="flex flex-col items-start gap-3 p-6">
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            {t("pages.mainText.notFound")}
-          </p>
-          <Button variant="secondary" onClick={fetchRecord}>
-            {t("pages.mainText.retry")}
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div>
       {heading}
 
-      {duplicateCount > 1 && (
-        <Card className="mb-4 flex items-start gap-3 border-amber-300 p-4 dark:border-amber-800">
-          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-          <p className="text-sm text-slate-700 dark:text-slate-300">
-            {t("pages.mainText.duplicateWarning", {
-              count: duplicateCount,
-              id: record.id,
-            })}
-          </p>
-        </Card>
-      )}
+      <div className="flex flex-col gap-4">
+        {blocks.map((block) => (
+          <Card key={block.type} className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {t(block.labelKey)}
+                </h3>
+                {block.record ? (
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">
+                    {previewText(block.record) || t("pages.mainText.emptyText")}
+                  </p>
+                ) : (
+                  <p className="mt-1 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                    {t("pages.mainText.missingRecord", { type: block.type })}
+                  </p>
+                )}
+              </div>
 
-      <Card className="flex items-center justify-between p-6">
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {t("pages.mainText.description")}
-        </p>
-        <Button onClick={() => setIsModalOpen(true)}>
-          {t("pages.mainText.edit")}
-        </Button>
-      </Card>
+              {/* Editing only — this screen never creates or deletes. */}
+              <Button
+                variant="secondary"
+                disabled={!block.record}
+                onClick={() => setEditing(block)}
+              >
+                <Pencil className="h-4 w-4" />
+                {t("pages.mainText.edit")}
+              </Button>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       <MainTextModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        banner={record}
+        isOpen={Boolean(editing)}
+        onClose={() => setEditing(null)}
+        record={editing?.record ?? null}
+        labelKey={editing?.labelKey ?? "pages.mainText.title"}
         onSaved={(updated) => {
-          setRecord(updated);
-          setIsModalOpen(false);
+          setBlocks((prev) =>
+            prev.map((b) => (b.type === updated.type ? { ...b, record: updated } : b)),
+          );
+          setEditing(null);
         }}
       />
     </div>

@@ -12,6 +12,7 @@ import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import { bannerTypeLabelKey } from "../../constants/bannerType";
+import { isMainTextType } from "../../constants/mainTextSections";
 import type { Banner } from "../../types/banners";
 
 export default function Banners() {
@@ -21,10 +22,10 @@ export default function Banners() {
   const { items: allItems, isLoading, hasError, remove } = useCrudList(
     bannersApi.getBanners,
   );
-  // The main-page-text singleton lives on this same resource but has its
-  // own dedicated tab (Pages → main-text) — it's not a banner an editor
-  // creates/deletes here, so it never appears in this table.
-  const items = allItems.filter((b) => b.type !== "main_text");
+  // The landing-page text blocks live on this same resource but have their
+  // own dedicated tab (Pages → main-text) — they aren't banners an editor
+  // creates/deletes here, so they never appear in this table.
+  const items = allItems.filter((b) => !isMainTextType(b.type));
 
   const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);

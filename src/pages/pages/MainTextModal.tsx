@@ -1,54 +1,44 @@
 import { useEffect, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useTranslation } from "react-i18next";
 import toast from "react-hot-toast";
 import { Modal } from "../../components/ui/Modal";
-import { Input } from "../../components/ui/Input";
+import { Textarea } from "../../components/ui/Textarea";
 import { Button } from "../../components/ui/Button";
-import { TranslatableFields } from "../../components/ui/TranslatableFields";
 import { bannersApi } from "../../api/banners";
 import { getApiErrorMessage, applyApiFieldErrors } from "../../api/client";
 import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { localesFor } from "../../api/locale-support";
 import type { Banner, PatchMainTextRequest } from "../../types/banners";
 
-const translatableField = z.object({ ru: z.string(), uz: z.string(), en: z.string() });
-
-// All four are plain — no field is required to be non-empty client-side;
-// the backend's own validation (exact three keys) is what buildTranslatable
-// already satisfies. Not requiring any one of them avoids blocking a save
-// on a field this admin can't otherwise tell is meant to be optional.
+// One input per language — the three languages live in three different API
+// fields here (see MainText.tsx), not in three slots of one field, so a
+// language tab bar would misrepresent the storage.
 const schema = z.object({
-  created_fabric: translatableField,
-  starts_fabric: translatableField,
-  tech_fabric: translatableField,
-  export_text: translatableField,
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-const emptyValues: FormValues = {
-  created_fabric: { ru: "", uz: "", en: "" },
-  starts_fabric: { ru: "", uz: "", en: "" },
-  tech_fabric: { ru: "", uz: "", en: "" },
-  export_text: { ru: "", uz: "", en: "" },
-};
-
-/** Same endpoint as the ordinary banner form (pages/banners) — this is a
-    field-set variant of the same resource, not a separate one. */
+/** Same endpoint as ordinary banners — these records differ only by type. */
 const locales = localesFor("pages/banners");
 
 export function MainTextModal({
   isOpen,
   onClose,
-  banner,
+  record,
+  labelKey,
   onSaved,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  banner: Banner | null;
+  record: Banner | null;
+  /** i18n key for this block's human label, from MAIN_TEXT_SECTIONS. */
+  labelKey: string;
   onSaved: (banner: Banner) => void;
 }) {
   const { t } = useTranslation();
@@ -59,58 +49,38 @@ export function MainTextModal({
     handleSubmit,
     reset,
     setError,
-    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: emptyValues,
+    defaultValues: { ru: "", uz: "", en: "" },
   });
-
-  // useWatch instead of watch(): watch() is not memo-safe and makes
-  // React Compiler bail out of optimizing the whole component.
-  const watchedValues = useWatch({ control });
 
   useEffect(() => {
     if (!isOpen) return;
-    // Full objects — resolving to one string here would wipe the other
-    // two languages on the next save.
+    // Reading is the mirror of writing: each language comes out of the
+    // field it was written to, from the matching slot. The other slots of
+    // those objects are empty by construction and ignored.
     reset({
-      created_fabric: toTranslatable(banner?.created_fabric),
-      starts_fabric: toTranslatable(banner?.starts_fabric),
-      tech_fabric: toTranslatable(banner?.tech_fabric),
-      export_text: toTranslatable(banner?.export_text),
+      ru: toTranslatable(record?.title).ru,
+      uz: toTranslatable(record?.subtitle).uz,
+      en: toTranslatable(record?.cta_label).en,
     });
-  }, [isOpen, banner, reset]);
+  }, [isOpen, record, reset]);
 
   const onSubmit = async (values: FormValues) => {
-    if (!banner) return;
+    if (!record) return;
     setIsSubmitting(true);
     try {
-      // Exactly these four keys — never title/subtitle/image/cta_label/
-      // cta_url/type. PATCH, id in the path, never PUT.
+      // `original` is deliberately null on all three: the two non-matching
+      // slots of each field MUST go out as "" per this storage scheme, so
+      // nothing may be inherited from what's currently stored there —
+      // that's exactly where the pre-existing junk ('string uz' etc.) sits.
       const payload: PatchMainTextRequest = {
-        created_fabric: buildTranslatable(
-          values.created_fabric,
-          banner.created_fabric,
-          locales,
-        ),
-        starts_fabric: buildTranslatable(
-          values.starts_fabric,
-          banner.starts_fabric,
-          locales,
-        ),
-        tech_fabric: buildTranslatable(
-          values.tech_fabric,
-          banner.tech_fabric,
-          locales,
-        ),
-        export_text: buildTranslatable(
-          values.export_text,
-          banner.export_text,
-          locales,
-        ),
+        title: buildTranslatable({ ru: values.ru, uz: "", en: "" }, null, locales),
+        subtitle: buildTranslatable({ ru: "", uz: values.uz, en: "" }, null, locales),
+        cta_label: buildTranslatable({ ru: "", uz: "", en: values.en }, null, locales),
       };
-      const { data } = await bannersApi.patchBanner(banner.id, payload);
+      const { data } = await bannersApi.patchBanner(record.id, payload);
       toast.success(t("pages.mainText.updateSuccess"));
       onSaved(data);
       onClose();
@@ -126,39 +96,26 @@ export function MainTextModal({
     message ? t(`pages.mainText.${message}`, { defaultValue: message }) : undefined;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={t("pages.mainText.editTitle")}>
+    <Modal isOpen={isOpen} onClose={onClose} title={t(labelKey)}>
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <TranslatableFields
-          locales={locales}
-          fields={["created_fabric", "starts_fabric", "tech_fabric", "export_text"]}
-          values={watchedValues}
-          errors={errors}
-        >
-          {(locale) => (
-            <>
-              <Input
-                label={`${t("pages.mainText.createdFabric")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.created_fabric?.[locale]?.message)}
-                {...register(`created_fabric.${locale}` as const)}
-              />
-              <Input
-                label={`${t("pages.mainText.startsFabric")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.starts_fabric?.[locale]?.message)}
-                {...register(`starts_fabric.${locale}` as const)}
-              />
-              <Input
-                label={`${t("pages.mainText.techFabric")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.tech_fabric?.[locale]?.message)}
-                {...register(`tech_fabric.${locale}` as const)}
-              />
-              <Input
-                label={`${t("pages.mainText.exportText")} (${locale.toUpperCase()})`}
-                error={fieldError(errors.export_text?.[locale]?.message)}
-                {...register(`export_text.${locale}` as const)}
-              />
-            </>
-          )}
-        </TranslatableFields>
+        <Textarea
+          label={t("pages.mainText.langRu")}
+          rows={3}
+          error={fieldError(errors.ru?.message)}
+          {...register("ru")}
+        />
+        <Textarea
+          label={t("pages.mainText.langUz")}
+          rows={3}
+          error={fieldError(errors.uz?.message)}
+          {...register("uz")}
+        />
+        <Textarea
+          label={t("pages.mainText.langEn")}
+          rows={3}
+          error={fieldError(errors.en?.message)}
+          {...register("en")}
+        />
 
         <div className="mt-2 flex justify-end gap-2">
           <Button type="button" variant="secondary" onClick={onClose}>
