@@ -10,15 +10,21 @@ import { partnersApi } from "../../api/partners";
 import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
-import { useCrudList } from "../../hooks/useCrudList";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 import type { Partner } from "../../types/partners";
 
 export default function PartnersList() {
   const { t, i18n } = useTranslation();
   const locale = useLocale();
-  const { items, isLoading, hasError, upsert, remove } = useCrudList(
-    partnersApi.getPartners,
-  );
+  const {
+    items,
+    isLoading,
+    hasError,
+    pagination,
+    refetch,
+    goToFirstPage,
+    afterDelete,
+  } = usePaginatedList(partnersApi.getPartners);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
@@ -30,7 +36,10 @@ export default function PartnersList() {
     setIsDeleting(true);
     try {
       await partnersApi.deletePartner(deletingPartner.id);
-      remove(deletingPartner.id);
+      // Refetch rather than drop the row locally: with server paging the
+      // gap must be filled from the next page, and deleting the last row on
+      // a page has to step back instead of showing an empty table.
+      afterDelete();
       toast.success(t("partners.partners.deleteSuccess"));
       setDeletingPartner(null);
     } catch (error) {
@@ -122,13 +131,16 @@ export default function PartnersList() {
         actionsHeader={t("partners.partners.actions")}
         editLabel={t("partners.partners.edit")}
         deleteLabel={t("partners.partners.delete")}
+        pagination={pagination}
       />
 
       <PartnerModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         partner={editingPartner}
-        onSaved={upsert}
+        // Create jumps to page 1 so the new record is actually visible;
+        // edit stays put so you aren't thrown off the page you were on.
+        onSaved={() => (editingPartner ? refetch() : goToFirstPage())}
       />
 
       <ConfirmDialog

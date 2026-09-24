@@ -11,7 +11,7 @@ import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
-import { bannerTypeLabelKey } from "../../constants/bannerType";
+import { bannerTypeLabelKey, bannerTypeHasCtaUrl } from "../../constants/bannerType";
 import { isMainTextType } from "../../constants/mainTextSections";
 import type { Banner } from "../../types/banners";
 
@@ -26,6 +26,9 @@ export default function Banners() {
   // own dedicated tab (Pages → main-text) — they aren't banners an editor
   // creates/deletes here, so they never appear in this table.
   const items = allItems.filter((b) => !isMainTextType(b.type));
+  // Computed over the rows this table actually shows, so a hidden
+  // service-type record can never keep the column alive on its own.
+  const hasCarrierBanner = items.some((b) => bannerTypeHasCtaUrl(b.type));
 
   const [deletingBanner, setDeletingBanner] = useState<Banner | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -83,24 +86,33 @@ export default function Banners() {
         <span className="line-clamp-1 max-w-xs">{resolve(b.subtitle, locale)}</span>
       ),
     },
-    {
-      key: "cta_url",
-      header: t("pages.banners.ctaUrl"),
-      render: (b) =>
-        b.cta_url ? (
-          <a
-            href={b.cta_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex max-w-48 items-center gap-1 truncate text-slate-600 underline hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
-          >
-            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{b.cta_url}</span>
-          </a>
-        ) : (
-          "—"
-        ),
-    },
+    // Only "carrier" banners have a CTA button on the public site, so only
+    // they show a link here. The column itself is shared by every row, so
+    // the rule lives in the cell: other types render nothing at all.
+    // Dropped entirely when no carrier banner exists, rather than standing
+    // empty for the whole table.
+    ...(hasCarrierBanner
+      ? [
+          {
+            key: "cta_url",
+            header: t("pages.banners.ctaUrl"),
+            render: (b: Banner) =>
+              // Guards the value too: a carrier banner with an empty or null
+              // cta_url gets an empty cell, never href="" or href="null".
+              bannerTypeHasCtaUrl(b.type) && b.cta_url ? (
+                <a
+                  href={b.cta_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex max-w-48 items-center gap-1 truncate text-slate-600 underline hover:text-slate-900 dark:text-slate-300 dark:hover:text-white"
+                >
+                  <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{b.cta_url}</span>
+                </a>
+              ) : null,
+          },
+        ]
+      : []),
   ];
 
   return (

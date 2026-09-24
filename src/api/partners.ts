@@ -1,4 +1,6 @@
 import { apiClient } from "./client";
+import type { PageParams } from "./pagination";
+import type { Paginated } from "./i18n";
 import type {
   Certificate,
   CertificatePayload,
@@ -29,7 +31,8 @@ export const partnersApi = {
   deleteCertificate: (id: number) =>
     apiClient.delete<void>(`${CERTIFICATES_URL}${id}/`),
 
-  getPartners: () => apiClient.get<Partner[]>(PARTNERS_URL),
+  getPartners: (params?: PageParams) =>
+    apiClient.get<Partner[] | Paginated<Partner>>(PARTNERS_URL, { params }),
 
   getPartner: (id: number) => apiClient.get<Partner>(`${PARTNERS_URL}${id}/`),
 

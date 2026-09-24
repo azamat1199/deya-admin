@@ -1,11 +1,14 @@
 import { apiClient } from "./client";
+import type { PageParams } from "./pagination";
+import type { Paginated } from "./i18n";
 import type { Lead, Subscription } from "../types/leads";
 
 const LEADS_URL = "/api/v1/admin/leads/leads/";
 const SUBSCRIPTIONS_URL = "/api/v1/admin/leads/subscriptions/";
 
 export const leadsApi = {
-  getLeads: () => apiClient.get<Lead[]>(LEADS_URL),
+  getLeads: (params?: PageParams) =>
+    apiClient.get<Lead[] | Paginated<Lead>>(LEADS_URL, { params }),
 
   getLead: (id: number) => apiClient.get<Lead>(`${LEADS_URL}${id}/`),
 

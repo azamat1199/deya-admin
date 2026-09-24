@@ -1,4 +1,6 @@
 import { apiClient } from "./client";
+import type { PageParams } from "./pagination";
+import type { Paginated } from "./i18n";
 import type {
   PostBlock,
   PostBlockPayload,
@@ -29,7 +31,8 @@ export const blogApi = {
   deletePostBlock: (id: number) =>
     apiClient.delete<void>(`${POST_BLOCKS_URL}${id}/`),
 
-  getPosts: () => apiClient.get<Post[]>(POSTS_URL),
+  getPosts: (params?: PageParams) =>
+    apiClient.get<Post[] | Paginated<Post>>(POSTS_URL, { params }),
 
   getPost: (id: number) => apiClient.get<Post>(`${POSTS_URL}${id}/`),
 

@@ -845,5 +845,12 @@
   "language": {
     "uzbek": "O'zbekcha",
     "russian": "Русский"
+  },
+  "pagination": {
+    "label": "Sahifalar bo'yicha navigatsiya",
+    "showing": "{{total}} tadan {{from}}–{{to}} ko'rsatilgan",
+    "perPage": "Sahifada:",
+    "previous": "Oldingi sahifa",
+    "next": "Keyingi sahifa"
   }
 }

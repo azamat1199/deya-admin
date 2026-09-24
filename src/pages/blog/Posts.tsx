@@ -11,15 +11,22 @@ import { blogApi } from "../../api/blog";
 import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
-import { useCrudList } from "../../hooks/useCrudList";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 import type { Post } from "../../types/blog";
 
 export default function Posts() {
   const { t, i18n } = useTranslation();
   const locale = useLocale();
-  const { items, isLoading, hasError, upsert, replace, remove } = useCrudList(
-    blogApi.getPosts,
-  );
+  const {
+    items,
+    isLoading,
+    hasError,
+    pagination,
+    replace,
+    refetch,
+    goToFirstPage,
+    afterDelete,
+  } = usePaginatedList(blogApi.getPosts);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
@@ -31,7 +38,10 @@ export default function Posts() {
     setIsDeleting(true);
     try {
       await blogApi.deletePost(deletingPost.id);
-      remove(deletingPost.id);
+      // Refetch rather than drop the row locally: with server paging the
+      // gap must be filled from the next page, and deleting the last row on
+      // a page has to step back instead of showing an empty table.
+      afterDelete();
       toast.success(t("blog.posts.deleteSuccess"));
       setDeletingPost(null);
     } catch (error) {
@@ -143,13 +153,16 @@ export default function Posts() {
         actionsHeader={t("blog.posts.actions")}
         editLabel={t("blog.posts.editPost")}
         deleteLabel={t("blog.posts.delete")}
+        pagination={pagination}
       />
 
       <PostModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         post={editingPost}
-        onSaved={upsert}
+        // Create jumps to page 1 so the new record is actually visible;
+        // edit stays put so you aren't thrown off the page you were on.
+        onSaved={() => (editingPost ? refetch() : goToFirstPage())}
       />
 
       <ConfirmDialog

@@ -16,6 +16,7 @@ import { getApiErrorMessage } from "../../api/client";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 import type { Product } from "../../types/catalog";
 
 function badgeChipClass(badge: string) {
@@ -29,9 +30,11 @@ export default function Products() {
   const { t } = useTranslation();
   const locale = useLocale();
   const navigate = useNavigate();
-  const { items, isLoading, hasError, replace, remove } = useCrudList(
-    catalogApi.getProducts,
-  );
+  const { items, isLoading, hasError, pagination, replace, afterDelete } =
+    usePaginatedList(catalogApi.getProducts);
+  // Lookup lists, not tables — these stay on useCrudList, which fetches
+  // every page, so a name never renders as "#12" just because its category
+  // sits on page 2.
   const categoriesList = useCrudList(catalogApi.getCategories);
   const familiesList = useCrudList(catalogApi.getProductFamilies);
   const flavorsList = useCrudList(catalogApi.getFlavors);
@@ -49,6 +52,12 @@ export default function Products() {
     [flavorsList.items, locale],
   );
 
+  // KNOWN LIMITATION, accepted when pagination was added: this sorts the
+  // CURRENT PAGE only. If the server paginates, it decides which products
+  // land on page 2 using its own ordering, so sort_order is no longer a
+  // global ordering across pages — only within a page. Fixing it properly
+  // means asking the server to order (`?ordering=sort_order`), which could
+  // not be verified against the live API.
   const sortedItems = useMemo(
     () => [...items].sort((a, b) => a.sort_order - b.sort_order),
     [items],
@@ -70,7 +79,10 @@ export default function Products() {
     setIsDeleting(true);
     try {
       await catalogApi.deleteProduct(deletingProduct.id);
-      remove(deletingProduct.id);
+      // Refetch rather than drop the row locally: with server paging the
+      // gap must be filled from the next page, and deleting the last row on
+      // a page has to step back instead of showing an empty table.
+      afterDelete();
       toast.success(t("catalog.products.deleteSuccess"));
       setDeletingProduct(null);
     } catch (error) {
@@ -190,6 +202,7 @@ export default function Products() {
         actionsHeader={t("catalog.products.actions")}
         editLabel={t("catalog.products.edit")}
         deleteLabel={t("catalog.products.delete")}
+        pagination={pagination}
       />
 
       <ConfirmDialog

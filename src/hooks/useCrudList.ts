@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Paginated } from "../api/i18n";
+import { fetchAllPages, type ListFetcher } from "../api/pagination";
 
 interface CrudListState<T> {
   items: T[];
@@ -8,30 +8,22 @@ interface CrudListState<T> {
 }
 
 /**
- * DRF paginated responses come back as `{ results: [...] }` instead of a
- * plain array; some list endpoints may also 200 with a single object or
- * null on an empty resource. Normalize defensively so a shape we didn't
- * expect degrades to an empty list instead of crashing the page.
- */
-function normalizeList<T>(data: unknown): T[] {
-  if (Array.isArray(data)) return data;
-  if (data && typeof data === "object" && Array.isArray((data as { results?: unknown }).results)) {
-    return (data as { results: T[] }).results;
-  }
-  return [];
-}
-
-/**
  * Generic list state for CRUD pages: fetches on mount, exposes refetch and
  * local mutations (upsert/replace/remove) so pages can update rows without
  * a refetch. `fetchList` must be a stable reference (e.g. an api-module
  * function) — passing a new closure each render would refetch in a loop.
+ *
+ * This hook always yields the COMPLETE list. It used to read `results` off a
+ * paginated envelope and silently drop `count`/`next`, so a paginated
+ * endpoint would have shown only its first page — which is wrong for the
+ * dropdowns and `Math.max(...sort_order) + 1` that depend on it.
+ * `fetchAllPages` walks the pages instead; an unpaginated endpoint still
+ * costs exactly one request.
+ *
+ * For a table that should show ONE page at a time, use usePaginatedList.
  */
 export function useCrudList<T extends { id: number | string }>(
-  // Accepts either shape so paginated endpoints are typed honestly rather
-  // than only rescued at runtime by normalizeList. Plain `T[]` still
-  // satisfies this, so existing callers are unaffected.
-  fetchList: () => Promise<{ data: T[] | Paginated<T> }>,
+  fetchList: ListFetcher<T>,
 ) {
   const [state, setState] = useState<CrudListState<T>>({
     items: [],
@@ -42,8 +34,8 @@ export function useCrudList<T extends { id: number | string }>(
   const refetch = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
-      const { data } = await fetchList();
-      setState({ items: normalizeList<T>(data), isLoading: false, hasError: false });
+      const items = await fetchAllPages(fetchList);
+      setState({ items, isLoading: false, hasError: false });
     } catch {
       setState((prev) => ({ ...prev, isLoading: false, hasError: true }));
     }
@@ -51,14 +43,9 @@ export function useCrudList<T extends { id: number | string }>(
 
   useEffect(() => {
     let cancelled = false;
-    fetchList()
-      .then(({ data }) => {
-        if (!cancelled)
-          setState({
-            items: normalizeList<T>(data),
-            isLoading: false,
-            hasError: false,
-          });
+    fetchAllPages(fetchList)
+      .then((items) => {
+        if (!cancelled) setState({ items, isLoading: false, hasError: false });
       })
       .catch(() => {
         if (!cancelled)

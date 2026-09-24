@@ -1,4 +1,6 @@
 import { apiClient } from "./client";
+import type { PageParams } from "./pagination";
+import type { Paginated } from "./i18n";
 import type {
   CatalogListItem,
   CatalogWritePayloadBase,
@@ -101,7 +103,8 @@ export const catalogApi = {
   deleteProductImage: (id: number) =>
     apiClient.delete<void>(`${PRODUCT_IMAGES_URL}${id}/`),
 
-  getProducts: () => apiClient.get<Product[]>(PRODUCTS_URL),
+  getProducts: (params?: PageParams) =>
+    apiClient.get<Product[] | Paginated<Product>>(PRODUCTS_URL, { params }),
 
   getProduct: (id: number) => apiClient.get<Product>(`${PRODUCTS_URL}${id}/`),
 

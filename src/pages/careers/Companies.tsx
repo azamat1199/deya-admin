@@ -8,7 +8,7 @@ import { DataTable, type Column } from "../../components/ui/DataTable";
 import { CompanyModal } from "./CompanyModal";
 import { careersApi } from "../../api/careers";
 import { getApiErrorMessage } from "../../api/client";
-import { useCrudList } from "../../hooks/useCrudList";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 import { resolve } from "../../api/i18n";
 import { useLocale } from "../../hooks/useLocale";
 import type { Company } from "../../types/careers";
@@ -23,9 +23,15 @@ function stripHtml(html: string): string {
 export default function Companies() {
   const { t } = useTranslation();
   const locale = useLocale();
-  const { items, isLoading, hasError, upsert, remove } = useCrudList(
-    careersApi.getCompanies,
-  );
+  const {
+    items,
+    isLoading,
+    hasError,
+    pagination,
+    refetch,
+    goToFirstPage,
+    afterDelete,
+  } = usePaginatedList(careersApi.getCompanies);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -37,7 +43,10 @@ export default function Companies() {
     setIsDeleting(true);
     try {
       await careersApi.deleteCompany(deletingCompany.id);
-      remove(deletingCompany.id);
+      // Refetch rather than drop the row locally: with server paging the
+      // gap must be filled from the next page, and deleting the last row on
+      // a page has to step back instead of showing an empty table.
+      afterDelete();
       toast.success(t("careers.companies.deleteSuccess"));
       setDeletingCompany(null);
     } catch (error) {
@@ -139,13 +148,16 @@ export default function Companies() {
         actionsHeader={t("careers.companies.actions")}
         editLabel={t("careers.companies.editCompany")}
         deleteLabel={t("careers.companies.delete")}
+        pagination={pagination}
       />
 
       <CompanyModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         company={editingCompany}
-        onSaved={upsert}
+        // Create jumps to page 1 so the new record is actually visible;
+        // edit stays put so you aren't thrown off the page you were on.
+        onSaved={() => (editingCompany ? refetch() : goToFirstPage())}
       />
 
       <ConfirmDialog

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Eye, Pencil, Trash2 } from "lucide-react";
 import { Card } from "./Card";
+import { Pagination, type PaginationProps } from "./Pagination";
 
 export interface Column<T> {
   key: string;
@@ -24,6 +25,7 @@ export function DataTable<T extends { id: number | string }>({
   editLabel,
   deleteLabel,
   rowClassName,
+  pagination,
 }: {
   columns: Column<T>[];
   items: T[];
@@ -39,12 +41,28 @@ export function DataTable<T extends { id: number | string }>({
   editLabel?: string;
   deleteLabel?: string;
   rowClassName?: (item: T) => string;
+  /** Omit for an unpaginated table — nothing about the layout changes. */
+  pagination?: PaginationProps;
 }) {
   const hasActions = Boolean(onView || onEdit || onDelete);
 
+  // Row numbers are a DISPLAY index, never the record's id — ids have gaps,
+  // and some resources key rows on a slug instead. Offsetting by the page
+  // keeps the sequence continuous: page 2 at size 10 starts at 11, not 1.
+  // Unpaginated tables pass no `pagination`, so they simply start at 1.
+  const rowNumberOffset = pagination
+    ? (pagination.page - 1) * pagination.pageSize
+    : 0;
+
+  // Paging to the next page must not collapse the table to a small spinner
+  // and bounce the page height. Once rows are on screen, keep them and dim
+  // them instead; only the very first load shows the bare spinner.
+  const keepsHeightWhileLoading = isLoading && items.length > 0;
+  const showsSpinnerOnly = isLoading && items.length === 0;
+
   return (
     <Card className="overflow-hidden">
-      {isLoading ? (
+      {showsSpinnerOnly ? (
         <div className="flex items-center justify-center p-10">
           <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900 dark:border-slate-600 dark:border-t-white" />
         </div>
@@ -55,10 +73,22 @@ export function DataTable<T extends { id: number | string }>({
           {emptyMessage}
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+        <div className="relative overflow-x-auto">
+          {keepsHeightWhileLoading && (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center bg-white/60 pt-10 dark:bg-slate-900/60">
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-slate-900 dark:border-slate-600 dark:border-t-white" />
+            </div>
+          )}
+          <table
+            className={`w-full text-left text-sm ${
+              keepsHeightWhileLoading ? "pointer-events-none" : ""
+            }`}
+          >
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-800/50 dark:text-slate-400">
               <tr>
+                <th className="w-12 px-4 py-3 text-right font-medium tabular-nums">
+                  №
+                </th>
                 {columns.map((col) => (
                   <th
                     key={col.key}
@@ -77,7 +107,7 @@ export function DataTable<T extends { id: number | string }>({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <tr
                   key={item.id}
                   onClick={onRowClick ? () => onRowClick(item) : undefined}
@@ -85,6 +115,9 @@ export function DataTable<T extends { id: number | string }>({
                     rowClassName ? rowClassName(item) : ""
                   }`}
                 >
+                  <td className="w-12 px-4 py-3 text-right tabular-nums text-slate-400 dark:text-slate-500">
+                    {rowNumberOffset + index + 1}
+                  </td>
                   {columns.map((col) => (
                     <td
                       key={col.key}
@@ -139,6 +172,13 @@ export function DataTable<T extends { id: number | string }>({
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Sits below the table so it stays put while rows load, and outside
+          the error/empty branches so it is absent exactly when there is
+          nothing to page through. */}
+      {pagination && !errorMessage && !showsSpinnerOnly && (
+        <Pagination {...pagination} />
       )}
     </Card>
   );

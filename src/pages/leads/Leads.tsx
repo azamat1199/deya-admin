@@ -11,6 +11,7 @@ import { leadsApi } from "../../api/leads";
 import { catalogApi } from "../../api/catalog";
 import { getApiErrorMessage } from "../../api/client";
 import { useCrudList } from "../../hooks/useCrudList";
+import { usePaginatedList } from "../../hooks/usePaginatedList";
 import { LEAD_TYPES, LEAD_STATUSES } from "../../types/leads";
 import type { Lead } from "../../types/leads";
 
@@ -36,9 +37,11 @@ function chipClass(map: Record<string, string>, value: string) {
 
 export default function Leads() {
   const { t, i18n } = useTranslation();
-  const { items, isLoading, hasError, replace, remove } = useCrudList(
-    leadsApi.getLeads,
-  );
+  const { items, isLoading, hasError, pagination, replace, afterDelete } =
+    usePaginatedList(leadsApi.getLeads);
+  // A lookup list for LeadDetailModal, not a table — stays on useCrudList,
+  // which fetches every page, so a lead's product name resolves whatever
+  // page that product would sit on.
   const productsList = useCrudList(catalogApi.getProducts);
 
   const [statusFilter, setStatusFilter] = useState("");
@@ -73,6 +76,11 @@ export default function Leads() {
     ];
   }, [items, t]);
 
+  // KNOWN LIMITATION, accepted when pagination was added: these three
+  // filters and the sort run in the browser over the CURRENT PAGE only. A
+  // search for a lead that sits on page 3 finds nothing while you are on
+  // page 1. Fixing it properly means sending status/type/search to the
+  // server, which could not be verified against the live API.
   const filteredItems = useMemo(() => {
     const q = search.trim().toLowerCase();
     return [...items]
@@ -95,7 +103,10 @@ export default function Leads() {
     setIsDeleting(true);
     try {
       await leadsApi.deleteLead(deletingLead.id);
-      remove(deletingLead.id);
+      // Refetch rather than drop the row locally: with server paging the
+      // gap must be filled from the next page, and deleting the last row on
+      // a page has to step back instead of showing an empty table.
+      afterDelete();
       toast.success(t("leads.leads.deleteSuccess"));
       setDeletingLead(null);
     } catch (error) {
@@ -228,6 +239,7 @@ export default function Leads() {
         actionsHeader={t("leads.leads.actions")}
         viewLabel={t("leads.leads.view")}
         deleteLabel={t("leads.leads.delete")}
+        pagination={pagination}
       />
 
       <LeadDetailModal

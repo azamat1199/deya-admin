@@ -1,4 +1,5 @@
 import { apiClient } from "./client";
+import type { PageParams } from "./pagination";
 import type { Paginated } from "./i18n";
 import type {
   CareerValue,
@@ -41,7 +42,8 @@ export const careersApi = {
   deleteCareerValue: (id: number) =>
     apiClient.delete<void>(`${CAREER_VALUES_URL}${id}/`),
 
-  getCompanies: () => apiClient.get<Company[]>(COMPANIES_URL),
+  getCompanies: (params?: PageParams) =>
+    apiClient.get<Company[] | Paginated<Company>>(COMPANIES_URL, { params }),
 
   getCompany: (id: number) => apiClient.get<Company>(`${COMPANIES_URL}${id}/`),
 

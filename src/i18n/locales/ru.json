@@ -845,5 +845,12 @@
   "language": {
     "uzbek": "O'zbekcha",
     "russian": "Русский"
+  },
+  "pagination": {
+    "label": "Постраничная навигация",
+    "showing": "Показано {{from}}–{{to}} из {{total}}",
+    "perPage": "На странице:",
+    "previous": "Предыдущая страница",
+    "next": "Следующая страница"
   }
 }
