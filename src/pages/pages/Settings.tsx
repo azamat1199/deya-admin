@@ -72,9 +72,6 @@ export default function Settings() {
   const [catalogFileUrl, setCatalogFileUrl] = useState<string | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
-  // settings/ is PUT-only (no PATCH), so every save rewrites the whole
-  // object. The loaded record is kept so untouched languages are sent back
-  // as-is rather than blanked.
   const [loaded, setLoaded] = useState<SiteSettings | null>(null);
 
   const {
@@ -89,8 +86,6 @@ export default function Settings() {
     defaultValues: emptyValues,
   });
 
-  // useWatch instead of watch(): watch() is not memo-safe and makes
-  // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
 
   const fetchSettings = useCallback(async () => {
@@ -119,7 +114,6 @@ export default function Settings() {
     }
   }, [reset]);
 
-   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -127,7 +121,6 @@ export default function Settings() {
     fetchSettings();
   }, [fetchSettings]);
   /* eslint-enable react-hooks/set-state-in-effect */
-   
 
   useUnsavedChangesGuard(isDirty);
 
@@ -137,7 +130,11 @@ export default function Settings() {
       const payload: SiteSettingsPayload = {
         ...values,
         address: buildTranslatable(values.address, loaded?.address, locales),
-        work_hours: buildTranslatable(values.work_hours, loaded?.work_hours, locales),
+        work_hours: buildTranslatable(
+          values.work_hours,
+          loaded?.work_hours,
+          locales,
+        ),
         cookie_notice_text: buildTranslatable(
           values.cookie_notice_text,
           loaded?.cookie_notice_text,
@@ -169,7 +166,9 @@ export default function Settings() {
           {t("pages.settings.title")}
         </h2>
         <Card className="flex flex-col items-start gap-3 p-6">
-          <p className="text-sm text-red-600">{t("pages.settings.loadError")}</p>
+          <p className="text-sm text-red-600">
+            {t("pages.settings.loadError")}
+          </p>
           <Button variant="secondary" onClick={fetchSettings}>
             {t("pages.settings.retry")}
           </Button>

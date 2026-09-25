@@ -29,16 +29,17 @@ const translatableField = z.object({
 });
 
 const schema = z.object({
-  title: translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
-    message: "titleRequired",
-  }),
+  title: translatableField.refine(
+    (v) => Object.values(v).some((x) => x.trim()),
+    {
+      message: "titleRequired",
+    },
+  ),
   slug: z.string().regex(/^[a-zA-Z0-9_-]+$/, "slugInvalid"),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-/** Locales this endpoint accepts. Module scope: a stable reference,
-    so it never becomes a hook dependency. */
 const locales = localesFor("pages/static-pages");
 
 export default function StaticPageEditor() {
@@ -58,8 +59,6 @@ export default function StaticPageEditor() {
   const [bodyDirty, setBodyDirty] = useState(false);
   const [bodyError, setBodyError] = useState<string | null>(null);
 
-  // Tracks whether the user has hand-edited the slug field; once true, the
-  // title→slug auto-sync stops so we don't clobber a manual edit.
   const [slugEdited, setSlugEdited] = useState(isEditing);
 
   const {
@@ -75,8 +74,6 @@ export default function StaticPageEditor() {
     defaultValues: { title: { ru: "", uz: "", en: "" }, slug: "" },
   });
 
-  // useWatch instead of watch(): watch() is not memo-safe and makes
-  // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
 
   useUnsavedChangesGuard(isDirty || bodyDirty);
@@ -99,7 +96,6 @@ export default function StaticPageEditor() {
     }
   }, [id, reset]);
 
-   
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -107,10 +103,12 @@ export default function StaticPageEditor() {
     if (isEditing) fetchPage();
   }, [isEditing, fetchPage]);
   /* eslint-enable react-hooks/set-state-in-effect */
-   
 
   const handleCancel = () => {
-    if ((isDirty || bodyDirty) && !window.confirm(t("pages.staticPages.unsavedChangesConfirm"))) {
+    if (
+      (isDirty || bodyDirty) &&
+      !window.confirm(t("pages.staticPages.unsavedChangesConfirm"))
+    ) {
       return;
     }
     navigate("/pages/static-pages");
@@ -138,7 +136,11 @@ export default function StaticPageEditor() {
         await pagesApi.createStaticPage(payload);
       }
       toast.success(
-        t(id ? "pages.staticPages.updateSuccess" : "pages.staticPages.createSuccess"),
+        t(
+          id
+            ? "pages.staticPages.updateSuccess"
+            : "pages.staticPages.createSuccess",
+        ),
       );
       navigate("/pages/static-pages");
     } catch (error) {
@@ -161,7 +163,9 @@ export default function StaticPageEditor() {
           {t("pages.staticPages.editPage")}
         </h2>
         <Card className="flex flex-col items-start gap-3 p-6">
-          <p className="text-sm text-red-600">{t("pages.staticPages.loadError")}</p>
+          <p className="text-sm text-red-600">
+            {t("pages.staticPages.loadError")}
+          </p>
           <Button variant="secondary" onClick={fetchPage}>
             {t("pages.staticPages.retry")}
           </Button>
@@ -186,13 +190,15 @@ export default function StaticPageEditor() {
   return (
     <div>
       <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
-        {t(isEditing ? "pages.staticPages.editPage" : "pages.staticPages.addPage")}
+        {t(
+          isEditing
+            ? "pages.staticPages.editPage"
+            : "pages.staticPages.addPage",
+        )}
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <Card className="flex flex-col gap-4 p-6">
-          {/* Title and body sit in separate Cards, so each keeps its own
-              tab bar rather than moving one across the existing layout. */}
           <TranslatableFields
             locales={locales}
             fields={["title"]}
@@ -252,7 +258,9 @@ export default function StaticPageEditor() {
             {t("pages.staticPages.cancel")}
           </Button>
           <Button type="submit" isLoading={isSubmitting}>
-            {t(isEditing ? "pages.staticPages.save" : "pages.staticPages.create")}
+            {t(
+              isEditing ? "pages.staticPages.save" : "pages.staticPages.create",
+            )}
           </Button>
         </div>
       </form>

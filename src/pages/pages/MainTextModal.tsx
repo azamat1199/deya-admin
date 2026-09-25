@@ -13,9 +13,6 @@ import { buildTranslatable, toTranslatable } from "../../api/i18n";
 import { localesFor } from "../../api/locale-support";
 import type { Banner, PatchMainTextRequest } from "../../types/banners";
 
-// One input per language — the three languages live in three different API
-// fields here (see MainText.tsx), not in three slots of one field, so a
-// language tab bar would misrepresent the storage.
 const schema = z.object({
   ru: z.string(),
   uz: z.string(),
@@ -24,7 +21,6 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-/** Same endpoint as ordinary banners — these records differ only by type. */
 const locales = localesFor("pages/banners");
 
 export function MainTextModal({
@@ -37,7 +33,6 @@ export function MainTextModal({
   isOpen: boolean;
   onClose: () => void;
   record: Banner | null;
-  /** i18n key for this block's human label, from MAIN_TEXT_SECTIONS. */
   labelKey: string;
   onSaved: (banner: Banner) => void;
 }) {
@@ -57,9 +52,6 @@ export function MainTextModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    // Reading is the mirror of writing: each language comes out of the
-    // field it was written to, from the matching slot. The other slots of
-    // those objects are empty by construction and ignored.
     reset({
       ru: toTranslatable(record?.title).ru,
       uz: toTranslatable(record?.subtitle).uz,
@@ -71,14 +63,22 @@ export function MainTextModal({
     if (!record) return;
     setIsSubmitting(true);
     try {
-      // `original` is deliberately null on all three: the two non-matching
-      // slots of each field MUST go out as "" per this storage scheme, so
-      // nothing may be inherited from what's currently stored there —
-      // that's exactly where the pre-existing junk ('string uz' etc.) sits.
       const payload: PatchMainTextRequest = {
-        title: buildTranslatable({ ru: values.ru, uz: "", en: "" }, null, locales),
-        subtitle: buildTranslatable({ ru: "", uz: values.uz, en: "" }, null, locales),
-        cta_label: buildTranslatable({ ru: "", uz: "", en: values.en }, null, locales),
+        title: buildTranslatable(
+          { ru: values.ru, uz: "", en: "" },
+          null,
+          locales,
+        ),
+        subtitle: buildTranslatable(
+          { ru: "", uz: values.uz, en: "" },
+          null,
+          locales,
+        ),
+        cta_label: buildTranslatable(
+          { ru: "", uz: "", en: values.en },
+          null,
+          locales,
+        ),
       };
       const { data } = await bannersApi.patchBanner(record.id, payload);
       toast.success(t("pages.mainText.updateSuccess"));
@@ -93,7 +93,9 @@ export function MainTextModal({
   };
 
   const fieldError = (message: string | undefined) =>
-    message ? t(`pages.mainText.${message}`, { defaultValue: message }) : undefined;
+    message
+      ? t(`pages.mainText.${message}`, { defaultValue: message })
+      : undefined;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t(labelKey)}>

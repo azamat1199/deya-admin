@@ -8,17 +8,8 @@ import { useLocale } from "../../hooks/useLocale";
 import { useCrudList } from "../../hooks/useCrudList";
 import type { PrivacyPolicyPage } from "../../types/pages";
 
-/**
- * The site has exactly two legal documents, forever — there is no create
- * flow, so any other slug is stray data (that's how "" and "body" ended up
- * in this list before). Filtered out here rather than hidden by a backend
- * fix, and logged so a stray record is still visible in the console instead
- * of silently vanishing.
- */
 const EXPECTED_SLUGS = ["privacy-policy", "personal-data-consent"];
 
-/** The resource has no id — it's keyed by slug. useCrudList/DataTable both
- * key rows by `id: number | string`, so the slug stands in for it here. */
 type Row = PrivacyPolicyPage & { id: string };
 
 const fetchRows = () =>
@@ -80,7 +71,9 @@ export default function PrivacyPolicy() {
           <button
             type="button"
             onClick={() =>
-              navigate(`/pages/privacy-policy/${encodeURIComponent(p.slug)}/edit`)
+              navigate(
+                `/pages/privacy-policy/${encodeURIComponent(p.slug)}/edit`,
+              )
             }
             aria-label={t("pages.privacyPolicy.editPage")}
             className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"

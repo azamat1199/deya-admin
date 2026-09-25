@@ -28,23 +28,18 @@ const translatableField = z.object({
 });
 
 const schema = z.object({
-  title: translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
-    message: "titleRequired",
-  }),
+  title: translatableField.refine(
+    (v) => Object.values(v).some((x) => x.trim()),
+    {
+      message: "titleRequired",
+    },
+  ),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-/** Locales this endpoint accepts. Module scope: a stable reference,
-    so it never becomes a hook dependency. No entry exists yet in
-    locale-support.ts — unmeasured, so this falls back to the full set. */
 const locales = localesFor("pages/privacy-policy");
 
-/**
- * Edit-only: this admin never creates or deletes one of the site's two
- * legal documents, so there is no "isEditing" branch here — `slug` always
- * comes from the route and is always present.
- */
 export default function PrivacyPolicyPageEditor() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -53,8 +48,6 @@ export default function PrivacyPolicyPageEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Rich text is held per locale, so switching tabs never loses the
-  // other languages and saving never blanks them.
   const [body, setBody] = useState<Translatable>({ ru: "", uz: "", en: "" });
   const [loadedBody, setLoadedBody] = useState<Translatable | null>(null);
   const [loadedTitle, setLoadedTitle] = useState<Translatable | null>(null);
@@ -73,8 +66,6 @@ export default function PrivacyPolicyPageEditor() {
     defaultValues: { title: { ru: "", uz: "", en: "" } },
   });
 
-  // useWatch instead of watch(): watch() is not memo-safe and makes
-  // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
 
   useUnsavedChangesGuard(isDirty || bodyDirty);
@@ -97,7 +88,6 @@ export default function PrivacyPolicyPageEditor() {
     }
   }, [slug, reset]);
 
-
   /* eslint-disable react-hooks/set-state-in-effect -- resets the form to
      the opened item; a documented, standard effect use case
      (https://react.dev/learn/you-might-not-need-an-effect) */
@@ -106,9 +96,11 @@ export default function PrivacyPolicyPageEditor() {
   }, [fetchPage]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-
   const handleCancel = () => {
-    if ((isDirty || bodyDirty) && !window.confirm(t("pages.privacyPolicy.unsavedChangesConfirm"))) {
+    if (
+      (isDirty || bodyDirty) &&
+      !window.confirm(t("pages.privacyPolicy.unsavedChangesConfirm"))
+    ) {
       return;
     }
     navigate("/pages/privacy-policy");
@@ -126,9 +118,6 @@ export default function PrivacyPolicyPageEditor() {
     setBodyError(null);
     setIsSubmitting(true);
     try {
-      // PATCH /{slug}/ — slug lives in the path only. Deliberately absent
-      // from the body: this resource offers no rename, and the type
-      // enforces it structurally (no `slug` field), not just by convention.
       const payload: PatchPrivacyPolicyPageRequest = {
         title: buildTranslatable(values.title, loadedTitle, locales),
         body: buildTranslatable(body, loadedBody, locales),
@@ -156,7 +145,9 @@ export default function PrivacyPolicyPageEditor() {
           {t("pages.privacyPolicy.editPage")}
         </h2>
         <Card className="flex flex-col items-start gap-3 p-6">
-          <p className="text-sm text-red-600">{t("pages.privacyPolicy.loadError")}</p>
+          <p className="text-sm text-red-600">
+            {t("pages.privacyPolicy.loadError")}
+          </p>
           <Button variant="secondary" onClick={fetchPage}>
             {t("pages.privacyPolicy.retry")}
           </Button>
@@ -186,8 +177,6 @@ export default function PrivacyPolicyPageEditor() {
 
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <Card className="flex flex-col gap-4 p-6">
-          {/* Title and body sit in separate Cards, so each keeps its own
-              tab bar rather than moving one across the existing layout. */}
           <TranslatableFields
             locales={locales}
             fields={["title"]}
@@ -204,7 +193,11 @@ export default function PrivacyPolicyPageEditor() {
           </TranslatableFields>
 
           <div className="flex flex-col gap-1.5">
-            <Input label={t("pages.privacyPolicy.slug")} value={slug ?? ""} disabled />
+            <Input
+              label={t("pages.privacyPolicy.slug")}
+              value={slug ?? ""}
+              disabled
+            />
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {t("pages.privacyPolicy.slugLocked")}
             </p>

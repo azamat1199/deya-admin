@@ -21,35 +21,36 @@ import {
   type BannerType,
 } from "../../constants/bannerType";
 import { useUnsavedChangesGuard } from "../../hooks/useUnsavedChangesGuard";
-import type { Banner, BannerPayload, PatchBannerRequest } from "../../types/banners";
+import type {
+  Banner,
+  BannerPayload,
+  PatchBannerRequest,
+} from "../../types/banners";
 
-const translatableField = z.object({ ru: z.string(), uz: z.string(), en: z.string() });
+const translatableField = z.object({
+  ru: z.string(),
+  uz: z.string(),
+  en: z.string(),
+});
 const requiredTranslatable = (message: string) =>
   translatableField.refine((v) => Object.values(v).some((x) => x.trim()), {
     message,
   });
 
-// `cta_label` has no field in this form at all — see the submit-time
-// constant below — so the schema only covers what's actually editable.
 const schema = z.object({
   type: z.enum(
-    BANNER_TYPES.map((t) => t.value) as unknown as [BannerType, ...BannerType[]],
+    BANNER_TYPES.map((t) => t.value) as unknown as [
+      BannerType,
+      ...BannerType[],
+    ],
   ),
   title: requiredTranslatable("titleRequired"),
   subtitle: translatableField,
-  // format:uri on the API and empty isn't a valid URI — same convention as
-  // vacancies_url elsewhere: a valid absolute URL, or left blank entirely.
-  // Never required: only "carrier" shows this field at all (see
-  // bannerTypeHasCtaUrl), and a value left over from a since-abandoned
-  // "carrier" selection must not block save on another type.
   cta_url: z.string().url("ctaUrlInvalid").or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof schema>;
 
-// No default is specified by the schema — this is an arbitrary but
-// necessary starting choice (the first option), not a backend-stated
-// default. type is required, so this is never submitted un-chosen.
 const emptyValues: FormValues = {
   type: BANNER_TYPES[0].value,
   title: { ru: "", uz: "", en: "" },
@@ -57,16 +58,8 @@ const emptyValues: FormValues = {
   cta_url: "",
 };
 
-/**
- * `cta_label` has no field in this form — no type shows it — so every save
- * sends exactly this rather than mock text or a preserved-but-uneditable
- * value. Always three empty keys, never derived from what was loaded.
- */
 const EMPTY_TRANSLATABLE = { ru: "", uz: "", en: "" };
 
-/** Locales this endpoint accepts. Module scope: a stable reference,
-    so it never becomes a hook dependency. No entry exists yet in
-    locale-support.ts — unmeasured, so this falls back to the full set. */
 const locales = localesFor("pages/banners");
 
 export default function BannerEditor() {
@@ -81,8 +74,6 @@ export default function BannerEditor() {
   const [loaded, setLoaded] = useState<Banner | null>(null);
 
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  // Only send `image` when the user actually changed it: re-sending the
-  // stored URL unconditionally is the CompanyModal bug.
   const [imageDirty, setImageDirty] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
@@ -98,8 +89,6 @@ export default function BannerEditor() {
     defaultValues: emptyValues,
   });
 
-  // useWatch instead of watch(): watch() is not memo-safe and makes
-  // React Compiler bail out of optimizing the whole component.
   const watchedValues = useWatch({ control });
   const showCtaUrl = bannerTypeHasCtaUrl(watchedValues.type ?? "");
 
@@ -112,15 +101,9 @@ export default function BannerEditor() {
     try {
       const { data } = await bannersApi.getBanner(Number(id));
       reset({
-        // A stored type not in BANNER_TYPES (added backend-side before the
-        // admin knows about it, or the removed "about") falls back to the
-        // first option rather than leaving the select on an invalid,
-        // unselectable value.
         type: BANNER_TYPES.some((t) => t.value === data.type)
           ? (data.type as BannerType)
           : BANNER_TYPES[0].value,
-        // Full objects — resolving to one string here would wipe the other
-        // languages on the next save.
         title: toTranslatable(data.title),
         subtitle: toTranslatable(data.subtitle),
         cta_url: data.cta_url,
@@ -141,10 +124,12 @@ export default function BannerEditor() {
   useEffect(() => {
     if (isEditing) fetchBanner();
   }, [isEditing, fetchBanner]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleCancel = () => {
-    if ((isDirty || imageDirty) && !window.confirm(t("pages.banners.unsavedChangesConfirm"))) {
+    if (
+      (isDirty || imageDirty) &&
+      !window.confirm(t("pages.banners.unsavedChangesConfirm"))
+    ) {
       return;
     }
     navigate("/pages/banners");
@@ -159,23 +144,16 @@ export default function BannerEditor() {
     setIsSubmitting(true);
     try {
       const title = buildTranslatable(values.title, loaded?.title, locales);
-      const subtitle = buildTranslatable(values.subtitle, loaded?.subtitle, locales);
-      // Always empty — there is no field for this, on any type. `original`
-      // is null on purpose: a previously-stored value must not resurface
-      // once this admin has nothing to show or edit it.
+      const subtitle = buildTranslatable(
+        values.subtitle,
+        loaded?.subtitle,
+        locales,
+      );
       const ctaLabel = buildTranslatable(EMPTY_TRANSLATABLE, null, locales);
-      // Gated on the CURRENT type, not merely on whether a value is
-      // present: a value typed while "carrier" was selected must not leak
-      // into the payload after switching to "main"/"partner", even though
-      // it's still sitting in form state (see showCtaUrl / point 4).
       const hasCtaUrl = bannerTypeHasCtaUrl(values.type);
       const ctaUrl = hasCtaUrl ? values.cta_url.trim() : "";
 
       if (id) {
-        // PATCH /{id}/ — never PUT: a full replace risks overwriting a
-        // language the editor never opened. `type` must be included here:
-        // omitting it on edit is what made changing a banner's type
-        // impossible before this fix.
         const payload: PatchBannerRequest = {
           type: values.type,
           title,
@@ -208,7 +186,9 @@ export default function BannerEditor() {
   };
 
   const fieldError = (message: string | undefined) =>
-    message ? t(`pages.banners.${message}`, { defaultValue: message }) : undefined;
+    message
+      ? t(`pages.banners.${message}`, { defaultValue: message })
+      : undefined;
 
   const heading = (
     <h2 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
@@ -291,14 +271,6 @@ export default function BannerEditor() {
             )}
           </TranslatableFields>
 
-          {/* Only "carrier" banners show a CTA button on the public site.
-              Conditionally rendered rather than disabled — a hidden
-              required-style rule would otherwise block saving main/partner
-              banners for no reason visible to the editor. Removed from the
-              tree, not just visually hidden: react-hook-form keeps the
-              field's last value in its internal state regardless (default
-              shouldUnregister:false), so switching back to "carrier"
-              restores whatever was typed — no warning dialog needed. */}
           {showCtaUrl && (
             <Input
               label={t("pages.banners.ctaUrl")}
