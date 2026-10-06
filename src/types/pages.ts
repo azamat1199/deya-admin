@@ -28,24 +28,6 @@ export interface SiteSettingsPayload {
   cookie_notice_text: TranslatableInput;
 }
 
-export interface StaticPage {
-  id: number;
-  slug: string;
-  title: Translatable | string;
-  // HTML string from the TipTap editor, per locale.
-  body: Translatable | string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface StaticPagePayload {
-  slug: string;
-  title: TranslatableInput;
-  body: TranslatableInput;
-}
-
-export type PatchStaticPageRequest = Partial<StaticPagePayload>;
-
 /**
  * A legal document in the privacy-policy collection — keyed by SLUG, not id
  * (the resource has no id field). NOT a singleton: GET on the collection URL
