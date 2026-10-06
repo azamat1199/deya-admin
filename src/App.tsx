@@ -32,8 +32,6 @@ import Leads from "./pages/leads/Leads";
 import Subscriptions from "./pages/leads/Subscriptions";
 import PagesLayout from "./pages/pages/PagesLayout";
 import Settings from "./pages/pages/Settings";
-import StaticPages from "./pages/pages/StaticPages";
-import StaticPageEditor from "./pages/pages/StaticPageEditor";
 import PrivacyPolicy from "./pages/pages/PrivacyPolicy";
 import PrivacyPolicyPageEditor from "./pages/pages/PrivacyPolicyPageEditor";
 import Banners from "./pages/pages/Banners";
@@ -94,9 +92,6 @@ function App() {
         <Route path="/pages" element={<PagesLayout />}>
           <Route index element={<Navigate to="settings" replace />} />
           <Route path="settings" element={<Settings />} />
-          <Route path="static-pages" element={<StaticPages />} />
-          <Route path="static-pages/create" element={<StaticPageEditor />} />
-          <Route path="static-pages/:id/edit" element={<StaticPageEditor />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
           <Route
             path="privacy-policy/:slug/edit"
