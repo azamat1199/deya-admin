@@ -27,7 +27,7 @@ import {
  * and (as of the fix in CareersBrands.tsx) Companies.description go through
  * `sanitizeRichText` before dangerouslySetInnerHTML — its allowlist is only
  * p/br/strong/b/em/i/a, so a colour span or an <img> is silently stripped.
- * PrivacyPolicy.body and StaticPages.body aren't fetched by deya-app at all.
+ * PrivacyPolicy.body isn't fetched by deya-app at all.
  * PostBlockModal uses a plain Textarea, not this component.
  */
 
