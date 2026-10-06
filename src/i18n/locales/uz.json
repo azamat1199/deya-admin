@@ -615,7 +615,6 @@
     "title": "Sahifalar",
     "tabs": {
       "settings": "Sozlamalar",
-      "staticPages": "Statik sahifalar",
       "privacyPolicy": "Maxfiylik siyosati",
       "banners": "Bannerlar",
       "mainText": "Bosh sahifa matni"
@@ -645,32 +644,6 @@
       "hotlineInvalid": "To'g'ri telefon raqamini kiriting",
       "emailInvalid": "To'g'ri email kiriting",
       "urlInvalid": "To'g'ri havola kiriting"
-    },
-    "staticPages": {
-      "title": "Statik sahifalar",
-      "addPage": "Sahifa qo'shish",
-      "editPage": "Sahifani tahrirlash",
-      "pageTitle": "Sarlavha",
-      "slug": "Slug",
-      "body": "Mazmun",
-      "updatedAt": "Yangilangan",
-      "actions": "Amallar",
-      "empty": "Hozircha sahifalar yo'q.",
-      "loadError": "Sahifani yuklab bo'lmadi.",
-      "retry": "Qayta urinish",
-      "confirmDeleteTitle": "Sahifani o'chirish",
-      "confirmDeleteMessage": "\"{{name}}\" sahifasini o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.",
-      "delete": "O'chirish",
-      "cancel": "Bekor qilish",
-      "save": "Saqlash",
-      "create": "Yaratish",
-      "createSuccess": "Sahifa muvaffaqiyatli yaratildi",
-      "updateSuccess": "Sahifa muvaffaqiyatli yangilandi",
-      "deleteSuccess": "Sahifa o'chirildi",
-      "titleRequired": "Sarlavha majburiy",
-      "slugInvalid": "Slug majburiy va faqat lotin harflari, raqamlar, defis va pastki chiziqdan iborat bo'lishi kerak",
-      "bodyRequired": "Sahifa mazmuni majburiy",
-      "unsavedChangesConfirm": "Saqlanmagan o'zgarishlaringiz bor. Saqlamasdan chiqasizmi?"
     },
     "privacyPolicy": {
       "title": "Maxfiylik siyosati",
